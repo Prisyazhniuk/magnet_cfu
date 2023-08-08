@@ -26,6 +26,11 @@ from zhinst.toolkit.exceptions import ToolkitError
 
 ###########################################################################################################
 
+def decimal_range(start, stop, increment):
+    while start < stop:
+        yield start
+        start += increment
+
 
 def serial_ports():
     """ Lists serial port names
@@ -57,8 +62,6 @@ def serial_ports():
 
 def init_serial():
 
-
-
     ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
     ser.port = "COM{}".format(COMPORT)
 
@@ -71,6 +74,7 @@ def init_serial():
     result = ser.read(33)
     ser.close()
     print(result)
+
 
 def magnet_read():
 
@@ -92,9 +96,9 @@ def magnet_set():
     ser.port = "COM{}".format(COMPORT)
 
 
-    # setI = float(input("Enter I set: "))
-    # stepI = float(input("Enter I step: "))
-    # _i = stepI
+    setI = float(input("Enter I set: "))
+    stepI = float(input("Enter I step: "))
+    _i = 0.00
 
     ser.open()
 
@@ -122,19 +126,21 @@ def magnet_set():
     print(realCurrVolt)
 
 
-    # Istart = 0.0
-    # while Istart != setI and realCurrVolt != ChangeI:
-    #     if 0.0 <= setI < 7.5:
-    #         ChangeI = ser.write("A007SOUR:VOLT +0;CURR +0".encode())
-    #         ser.write(_i.encode())
-    #
-    #         Istart += _i
-    #         _i += stepI
-    #
-    #
-    #     else:
-    #         print("ERROR!")
-    # ser.close()
+    for _i in decimal_range(_i, set_I, step_I):
+        if 0.0 <= abs(setI) < 7.5:
+
+            a = "A007SOUR:VOLT +0"
+            b = str(_i)
+            c = "CURR +0"
+            d = str(_i)
+            res = "{}{};{}{}\n".format(a, b, c, d)
+            ser.write(res.encode())
+            _i += step_I
+
+        else:
+            ser.close()
+            print("ERROR!")
+    ser.close()
 
 
 def reset_magn():
@@ -150,6 +156,17 @@ def reset_magn():
     ser.close()
 
 
+def volt_amper_check():
+
+    ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
+    ser.port = "COM{}".format(COMPORT)
+    ser.open()
+
+    ser.write("A007FETC?\n".encode())
+    realCurrVolt = ser.read(23)
+    ser.close()
+    print(realCurrVolt)
+
 
 if __name__ == '__main__':
 
@@ -163,7 +180,13 @@ if __name__ == '__main__':
     s = input()
     if s == 'y':
         magnet_set()
+    else:
+        print('OK.')
 
+    print("do u wanna checking current (y/n)? \n> ", end='')
+    s = input()
+    if s == 'y':
+        volt_amper_check()
     else:
         print('OK.')
 
@@ -171,7 +194,6 @@ if __name__ == '__main__':
     s = input()
     if s == 'y':
         reset_magn()
-
     else:
         print('OK.')
 
