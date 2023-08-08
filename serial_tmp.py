@@ -96,8 +96,8 @@ def magnet_set():
     ser.port = "COM{}".format(COMPORT)
 
 
-    setI = float(input("Enter I set: "))
-    stepI = float(input("Enter I step: "))
+    set_I = float(input("Enter I set: "))
+    step_I = float(input("Enter I step: "))
     _i = 0.00
 
     ser.open()
@@ -126,21 +126,22 @@ def magnet_set():
     print(realCurrVolt)
 
 
-    for _i in decimal_range(_i, set_I, step_I):
-        if 0.0 <= abs(setI) < 7.5:
+    for _i in decimal_range(_i, set_I + step_I, step_I):
+        if 0.0 <= abs(set_I) < 7.5:
 
-            a = "A007SOUR:VOLT +0"
-            b = str(_i)
-            c = "CURR +0"
+            a = "A007SOUR:VOLT "
+            b = str(_i * 10)
+            c = "CURR "
             d = str(_i)
-            res = "{}{};{}{}\n".format(a, b, c, d)
+            res = "{}{}00;{}{}0\n".format(a, b, c, d)
+            ser.open()
             ser.write(res.encode())
+            ser.close()
             _i += step_I
 
         else:
             ser.close()
             print("ERROR!")
-    ser.close()
 
 
 def reset_magn():
