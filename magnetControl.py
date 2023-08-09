@@ -137,7 +137,7 @@ def magnet_set():
                 b = _i * 10
                 c = "CURR "
                 d = _i
-                res = f"{a} {b:.3f} {c} {d:.3f}\n"
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 ser.open()
                 ser.write(res.encode())
                 ser.close()
@@ -148,7 +148,7 @@ def magnet_set():
                 b = _i * 10
                 c = "CURR "
                 d = _i
-                res = f"{a} {b:.3f} {c} {d:.3f}\n"
+                res = f"{a} {b:.3f}; {c} {d:.3f}\n"
                 ser.open()
                 ser.write(res.encode())
                 ser.close()
