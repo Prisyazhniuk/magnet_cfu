@@ -24,12 +24,19 @@ from zhinst.toolkit.nodetree import Node, NodeTree
 from zhinst.toolkit.nodetree.helper import lazy_property
 from zhinst.toolkit.exceptions import ToolkitError
 
+
 ###########################################################################################################
 
 def decimal_range(start, stop, increment):
     while start < stop:
         yield start
         start += increment
+
+
+def rev_decimal_range(start, stop, increment):
+    while start > stop:
+        yield start
+        start -= increment
 
 
 def serial_ports():
@@ -61,14 +68,13 @@ def serial_ports():
 
 
 def init_serial():
-
     ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
     ser.port = "COM{}".format(COMPORT)
 
     ser.open()
 
     if ser.isOpen():
-       print('Open: ' + ser.portstr)
+        print('Open: ' + ser.portstr)
 
     ser.write("A007*IDN?\n".encode())
     result = ser.read(33)
@@ -77,7 +83,6 @@ def init_serial():
 
 
 def magnet_read():
-
     ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
     ser.port = "COM{}".format(COMPORT)
 
@@ -90,11 +95,10 @@ def magnet_read():
     volt, curr = res_volt, res_curr
     print(f' Voltage = {float(volt)} V, Current = {float(curr)} A')
 
-def magnet_set():
 
+def magnet_set():
     ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
     ser.port = "COM{}".format(COMPORT)
-
 
     set_I = float(input("Enter I set: "))
     step_I = float(input("Enter I step: "))
@@ -125,19 +129,29 @@ def magnet_set():
     ser.close()
     print(realCurrVolt)
 
+    if 0.0 <= abs(set_I) < 7.5:
 
-    for _i in decimal_range(_i, set_I + step_I, step_I):
-        if 0.0 <= abs(set_I) < 7.5:
+        if set_I > 0:
+            for _i in decimal_range(_i, set_I + step_I, step_I):
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a} {b:.3f} {c} {d:.3f}\n"
+                ser.open()
+                ser.write(res.encode())
+                ser.close()
 
-            a = "A007SOUR:VOLT "
-            b = str(_i * 10)
-            c = "CURR "
-            d = str(_i)
-            res = "{}{}00;{}{}0\n".format(a, b, c, d)
-            ser.open()
-            ser.write(res.encode())
-            ser.close()
-            _i += step_I
+        elif set_I < 0:
+            for _i in rev_decimal_range(_i, set_I - step_I, step_I):
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a} {b:.3f} {c} {d:.3f}\n"
+                ser.open()
+                ser.write(res.encode())
+                ser.close()
 
         else:
             ser.close()
@@ -145,7 +159,6 @@ def magnet_set():
 
 
 def reset_magn():
-
     ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
     ser.port = "COM{}".format(COMPORT)
 
@@ -158,7 +171,6 @@ def reset_magn():
 
 
 def volt_amper_check():
-
     ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
     ser.port = "COM{}".format(COMPORT)
     ser.open()
