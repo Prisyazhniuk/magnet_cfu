@@ -153,9 +153,12 @@ def magnet_set():
                 ser.write(res.encode())
                 ser.close()
 
-        else:
-            ser.close()
-            print("ERROR!")
+    elif abs(set_I) > 7.5 and abs(step_I) > 0.05:
+        print("Ток не может быть больше 7.5 А и шаг по току не может быть больше 0.05")
+    elif abs(step_I) > 0.05:
+        print("Шаг по полю не может быть больше 0.05 А")
+    elif abs(set_I) > 7.5:
+        print("Ток не может быть больше 7.5 А")
 
 
 def reset_magn():
