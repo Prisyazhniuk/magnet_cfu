@@ -148,7 +148,7 @@ def magnet_set():
                 b = _i * 10
                 c = "CURR "
                 d = _i
-                res = f"{a} {b:.3f}; {c} {d:.3f}\n"
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 ser.open()
                 ser.write(res.encode())
                 ser.close()
@@ -160,10 +160,57 @@ def magnet_set():
     elif abs(set_I) > 7.5:
         print("Ток не может быть больше 7.5 А")
 
+    print("Do I need to reset the current?\n> ", end='')
+    for_reset = input()
+    _i = 0.0
+    if for_reset == "y":
+        if set_I > 0:
+            for _i in rev_decimal_range(set_I - step_I, _i - step_I, step_I):
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                ser.open()
+                ser.write(res.encode())
+                ser.close()
+                print("test")
+
+            ser.open()
+            ser.write("A007OUTP OFF\n".encode())
+            ser.close()
+            ser.open()
+            ser.write("A007*RST\n".encode())
+            ser.close()
+        else:
+            print("Error")
+
+        if set_I < 0:
+            for _i in decimal_range(set_I + step_I, _i + step_I, step_I):
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                ser.open()
+                ser.write(res.encode())
+                ser.close()
+
+            ser.open()
+            ser.write("A007OUTP OFF\n".encode())
+            ser.close()
+            ser.open()
+            ser.write("A007*RST\n".encode())
+            ser.close()
+    else:
+        print("ERROR")
+
 
 def reset_magn():
     ser = serial.Serial(baudrate=115200, bytesize=8, parity="N", stopbits=1, timeout=0.3)
     ser.port = "COM{}".format(COMPORT)
+
+
 
     ser.open()
     ser.write("A007OUTP OFF\n".encode())
