@@ -8,7 +8,8 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QLabel,
     QLineEdit,
-    QWidget
+    QWidget,
+    QFormLayout
 )
 
 
@@ -17,7 +18,7 @@ class Magnet_CFU(QMainWindow):
         super().__init__()
 
         self.setWindowTitle("Magnet CFU")
-        self.btn_COM = QPushButton("COM")
+        self.lbl_COM = QLabel("COM")
         self.btn_IDN = QPushButton("IDN")
         self.btn_Loops = QPushButton("Loops")
         self.btn_I_start = QPushButton("I start")
@@ -32,26 +33,32 @@ class Magnet_CFU(QMainWindow):
         self.btn_Start_Meas = QPushButton("Start Measurment")
         self.btn_Open = QPushButton("Open...")
 
-        layout = QVBoxLayout()
-        layout.addWidget(self.btn_COM)
-        layout.addWidget(self.btn_IDN)
-        layout.addWidget(self.btn_Loops)
-        layout.addWidget(self.btn_I_start)
-        layout.addWidget(self.btn_I_stop)
-        layout.addWidget(self.btn_Amper)
-        layout.addWidget(self.btn_Step)
-        layout.addWidget(self.btn_Resistance)
-        layout.addWidget(self.btn_Start)
-        layout.addWidget(self.btn_Stop)
-        layout.addWidget(self.btn_Reset)
-        layout.addWidget(self.btn_Start_Meas)
-        layout.addWidget(self.btn_Open)
+        outerLayout = QVBoxLayout()
+        topLayout = QFormLayout()
+        middleLayout = QVBoxLayout()
+        layout_04 = QVBoxLayout()
 
+        topLayout.addRow("IDN:", QLineEdit())
+        middleLayout.addWidget(self.btn_Loops)
+        middleLayout.addWidget(self.btn_I_start)
+        middleLayout.addWidget(self.btn_I_stop)
+        middleLayout.addWidget(self.btn_Amper)
+        middleLayout.addWidget(self.btn_Step)
+        middleLayout.addWidget(self.btn_Resistance)
+        middleLayout.addWidget(self.btn_Start)
+        middleLayout.addWidget(self.btn_Stop)
+        middleLayout.addWidget(self.btn_Reset)
+        middleLayout.addWidget(self.btn_Start_Meas)
+        middleLayout.addWidget(self.btn_Open)
 
-        container = QWidget()
-        container.setLayout(layout)
+        # container = QWidget()
+        # container.setLayout(layout_01)
+        outerLayout.addLayout(topLayout)
+        outerLayout.addLayout(middleLayout)
+        self.setLayout(outerLayout)
 
-        self.setCentralWidget(container)
+        # self.setCentralWidget(container)
+        self.resize(800, 450)
 
 
 app = QApplication(sys.argv)
