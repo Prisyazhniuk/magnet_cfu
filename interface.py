@@ -1,4 +1,5 @@
 import sys
+# import magnetControl as mc
 
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import (
@@ -11,7 +12,10 @@ from PyQt6.QtWidgets import (
     QWidget,
     QFormLayout,
     QTabWidget,
-    QCheckBox
+    QCheckBox,
+    QFileDialog,
+    QGridLayout,
+    QDoubleSpinBox
 )
 
 
@@ -19,60 +23,90 @@ class Magnet_CFU(QMainWindow):
     def __init__(self):
         super().__init__()
 
-        tabs = QTabWidget()
-        tabs.addTab(self.hysteresisTabUI(), "Hysteresis")
-        tabs.addTab(self.pumpProbeTabUI(), "Pump-probe")
-
         self.setWindowTitle("Magnet CFU")
-        lbl_COM = QLabel("COM")
-        btn_IDN = QPushButton("IDN")
-        btn_Loops = QPushButton("Loops")
-        btn_I_start = QPushButton("I start")
-        btn_I_stop = QPushButton("I stop")
-        btn_Volt = QPushButton("Volt")
-        btn_Amper = QPushButton("Amper")
-        btn_Step = QPushButton("Step")
-        btn_Resistance = QPushButton("Resistance")
-        btn_Start = QPushButton("Start")
-        btn_Stop = QPushButton("Stop")
-        btn_Reset = QPushButton("Reset")
-        btn_Start_Meas = QPushButton("Start Measurment")
-        btn_Open = QPushButton("Open...")
+        container    = QWidget()
+        tabs         = QTabWidget()
+        outerLayout  = QVBoxLayout()
+        topLayout    = QGridLayout()
+        middleLayout = QGridLayout()
+        bottomLayout = QGridLayout()
 
-        outerLayout = QVBoxLayout()
-        topLayout = QVBoxLayout()
-        middleLayout = QVBoxLayout()
-        bottomLayout = QVBoxLayout()
-
+        tabs.addTab(self.hysteresisTabUI(), "Hysteresis")
+        tabs.addTab(self.pumpProbeTabUI(),  "Pump-probe")
         topLayout.addWidget(tabs)
-        middleLayout.addWidget(btn_Loops)
-        middleLayout.addWidget(btn_I_start)
-        middleLayout.addWidget(btn_I_stop)
-        middleLayout.addWidget(btn_Amper)
-        middleLayout.addWidget(btn_Step)
-        middleLayout.addWidget(btn_Resistance)
-        middleLayout.addWidget(btn_Start)
-        middleLayout.addWidget(btn_Stop)
-        middleLayout.addWidget(btn_Reset)
-        middleLayout.addWidget(btn_Start_Meas)
-        middleLayout.addWidget(btn_Open)
 
-        container = QWidget()
         outerLayout.addLayout(topLayout)
         outerLayout.addLayout(middleLayout)
         outerLayout.addLayout(bottomLayout)
         container.setLayout(outerLayout)
 
         self.setCentralWidget(container)
-        self.resize(800, 450)
-
+        self.resize(1000, 800)
 
     def hysteresisTabUI(self):
-        hysteresisTab = QWidget()
-        layout = QVBoxLayout()
-        layout.addWidget(QCheckBox("General Option 1"))
-        layout.addWidget(QCheckBox("General Option 2"))
-        return hysteresisTab
+        hysteresis_tab = QWidget()
+        middle_layout  = QGridLayout()
+        outer_layout   = QVBoxLayout()
+        top_layout     = QGridLayout()
+        bottom_layout  = QGridLayout()
+
+        lbl_COM   = QLabel("COM")
+        btn_IDN   = QPushButton("IDN")
+        btn_Loops = QPushButton("Loops")
+
+        lbl_I_start = QLabel("I start")
+        lbl_I_stop = QLabel("I stop")
+        lbl_Volt = QLabel("Volt")
+        lbl_Amper = QLabel("Amper")
+        lbl_Step = QLabel("Step")
+        lbl_Resistance = QLabel("Resistance")
+
+        dsb_I_start = QDoubleSpinBox(self)
+        dsb_I_stop = QDoubleSpinBox(self)
+        dsb_Volt = QDoubleSpinBox(self)
+        dsb_Amper = QDoubleSpinBox(self)
+        dsb_Step = QDoubleSpinBox(self)
+        dsb_Resistance = QDoubleSpinBox(self)
+        # dsb_I_start.valueChanged.connect(lambda: a)
+
+        btn_Start = QPushButton("Start")
+        btn_Stop = QPushButton("Stop")
+        btn_Reset = QPushButton("Reset")
+        btn_Start_Meas = QPushButton("Start Measurment")
+        btn_Open = QPushButton("Open...")
+        btn_Save = QPushButton("Save")
+
+        top_layout.addWidget(lbl_COM,           0, 0)
+        top_layout.addWidget(btn_IDN,           0, 1)
+        top_layout.addWidget(btn_Loops,         1, 0)
+
+        middle_layout.addWidget(lbl_I_start,    0, 0)
+        middle_layout.addWidget(lbl_I_stop,     2, 0)
+        middle_layout.addWidget(lbl_Volt,       0, 1)
+        middle_layout.addWidget(lbl_Amper,      2, 1)
+        middle_layout.addWidget(lbl_Step,       0, 2)
+        middle_layout.addWidget(lbl_Resistance, 2, 2)
+
+        middle_layout.addWidget(dsb_I_start,    1, 0)
+        middle_layout.addWidget(dsb_I_stop,     3, 0)
+        middle_layout.addWidget(dsb_Amper,      3, 1)
+        middle_layout.addWidget(dsb_Volt,       1, 1)
+        middle_layout.addWidget(dsb_Step,       1, 2)
+        middle_layout.addWidget(dsb_Resistance, 3, 2)
+
+        bottom_layout.addWidget(btn_Start,      0, 0)
+        bottom_layout.addWidget(btn_Stop,       0, 1)
+        bottom_layout.addWidget(btn_Reset,      1, 0)
+        bottom_layout.addWidget(btn_Start_Meas, 1, 1)
+        bottom_layout.addWidget(btn_Open,       2, 0)
+        bottom_layout.addWidget(btn_Save,       2, 1)
+
+        outer_layout.addLayout(top_layout)
+        outer_layout.addLayout(middle_layout)
+        outer_layout.addLayout(bottom_layout)
+
+        hysteresis_tab.setLayout(outer_layout)
+        return hysteresis_tab
 
     def pumpProbeTabUI(self):
         pumpProbeTab = QWidget()
@@ -82,6 +116,13 @@ class Magnet_CFU(QMainWindow):
         pumpProbeTab.setLayout(layout)
         return pumpProbeTab
 
+
+    # def save_data(self):
+    #     file_name, _ = QFileDialog.getSaveFileName(self, 'Save File', '', 'Data Files (*.dat)')
+    #
+    #     if file_name:
+    #         with open(file_name, 'w') as f:
+    #             f.write(self.data_file.toPlainText())
 
 app = QApplication(sys.argv)
 
