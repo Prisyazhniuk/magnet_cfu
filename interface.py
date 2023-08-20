@@ -15,7 +15,9 @@ from PyQt6.QtWidgets import (
     QCheckBox,
     QFileDialog,
     QGridLayout,
-    QDoubleSpinBox
+    QDoubleSpinBox,
+    QGroupBox,
+    QSpinBox
 )
 
 
@@ -41,7 +43,7 @@ class Magnet_CFU(QMainWindow):
         container.setLayout(outerLayout)
 
         self.setCentralWidget(container)
-        self.resize(1000, 800)
+        self.resize(300, 500)
 
     def hysteresisTabUI(self):
         hysteresis_tab = QWidget()
@@ -55,7 +57,6 @@ class Magnet_CFU(QMainWindow):
 
         lbl_COM        = QLabel("COM")
         btn_IDN        = QPushButton("IDN")
-        btn_Loops      = QPushButton("Loops")
 
         lbl_I_start    = QLabel("I start")
         lbl_I_stop     = QLabel("I stop")
@@ -63,13 +64,15 @@ class Magnet_CFU(QMainWindow):
         lbl_Amper      = QLabel("Amper")
         lbl_Step       = QLabel("Step")
         lbl_Resistance = QLabel("Resistance")
+        lbl_Loops      = QLabel("Loops")
 
         dsb_I_start    = QDoubleSpinBox(self)
         dsb_I_stop     = QDoubleSpinBox(self)
-        dsb_Volt       = QDoubleSpinBox(self)
-        dsb_Amper      = QDoubleSpinBox(self)
         dsb_Step       = QDoubleSpinBox(self)
         dsb_Resistance = QDoubleSpinBox(self)
+        sb_Loops      = QSpinBox(self)
+        line_Volt       = QLineEdit(self)
+        line_Amper      = QLineEdit(self)
         # dsb_I_start.valueChanged.connect(lambda: a)
 
         btn_Start      = QPushButton("Start")
@@ -81,21 +84,22 @@ class Magnet_CFU(QMainWindow):
 
         top_layout.addWidget(lbl_COM,           0, 0)
         top_layout.addWidget(btn_IDN,           0, 1)
-        top_layout.addWidget(btn_Loops,         1, 0)
+        top_layout.addWidget(dsb_Resistance,    1, 0)
+        top_layout.addWidget(lbl_Resistance,    1, 1)
 
         middle_layout.addWidget(lbl_I_start,    0, 0)
         middle_layout.addWidget(lbl_I_stop,     2, 0)
         middle_layout.addWidget(lbl_Volt,       2, 2)
         middle_layout.addWidget(lbl_Amper,      0, 2)
         middle_layout.addWidget(lbl_Step,       0, 1)
-        middle_layout.addWidget(lbl_Resistance, 2, 1)
+        middle_layout.addWidget(lbl_Loops,      2, 1)
 
         middle_layout.addWidget(dsb_I_start,    1, 0)
         middle_layout.addWidget(dsb_I_stop,     3, 0)
-        middle_layout.addWidget(dsb_Amper,      3, 2)
-        middle_layout.addWidget(dsb_Volt,       1, 2)
+        middle_layout.addWidget(line_Amper,     3, 2)
+        middle_layout.addWidget(line_Volt,      1, 2)
         middle_layout.addWidget(dsb_Step,       1, 1)
-        middle_layout.addWidget(dsb_Resistance, 3, 1)
+        middle_layout.addWidget(sb_Loops,       3, 1)
 
         bottom_layout.addWidget(btn_Start,      0, 0)
         bottom_layout.addWidget(btn_Stop,       0, 1)
@@ -109,10 +113,21 @@ class Magnet_CFU(QMainWindow):
         dsb_I_start.setRange(-7.5, 7.5)
         dsb_I_stop.setRange(-7.5, 7.5)
         dsb_Step.setRange(0.01, 0.05)
+        sb_Loops.setValue(1)
+
+        box_1 = QGroupBox("Info")
+        box_2 = QGroupBox("Value")
+        box_3 = QGroupBox("Control")
+        box_1.setLayout(top_layout)
+        box_2.setLayout(middle_layout)
+        box_3.setLayout(bottom_layout)
 
         outer_layout.addLayout(top_layout)
         outer_layout.addLayout(middle_layout)
-        outer_layout.addLayout(bottom_layout)
+        outer_layout.addWidget(box_1)
+        outer_layout.addWidget(box_2)
+        outer_layout.addWidget(box_3)
+
 
         hysteresis_tab.setLayout(outer_layout)
         return hysteresis_tab
