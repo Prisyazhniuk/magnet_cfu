@@ -1,6 +1,6 @@
 import sys
 # import magnetControl as mc
-
+# 123
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
