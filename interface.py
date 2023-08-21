@@ -1,6 +1,7 @@
 import sys
+import os
 # import magnetControl as mc
-
+# 123
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
@@ -26,7 +27,11 @@ class Magnet_CFU(QMainWindow):
     def __init__(self):
         super().__init__()
 
+        magnet_dir = os.path.dirname(os.path.realpath(__file__))
+        self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
         self.setWindowTitle("Magnet CFU")
+
+        # self.setWindowIcon(QIcon('\\magnet_cfu\\icons\\01.png'))
         container    = QWidget()
         tabs         = QTabWidget()
         outerLayout  = QVBoxLayout()
@@ -34,8 +39,8 @@ class Magnet_CFU(QMainWindow):
         middleLayout = QGridLayout()
         bottomLayout = QGridLayout()
 
-        tabs.addTab(self.hysteresisTabUI(), "Hysteresis")
-        tabs.addTab(self.pumpProbeTabUI(),  "Pump-probe")
+        tabs.addTab(self.hysteresisTabUI(), "&Hysteresis")
+        tabs.addTab(self.pumpProbeTabUI(),  "&Pump-probe")
         topLayout.addWidget(tabs)
 
         outerLayout.addLayout(topLayout)
