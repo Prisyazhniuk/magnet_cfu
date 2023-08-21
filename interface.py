@@ -39,8 +39,8 @@ class Magnet_CFU(QMainWindow):
         middleLayout = QGridLayout()
         bottomLayout = QGridLayout()
 
-        tabs.addTab(self.hysteresisTabUI(), "Hysteresis")
-        tabs.addTab(self.pumpProbeTabUI(),  "Pump-probe")
+        tabs.addTab(self.hysteresisTabUI(), "&Hysteresis")
+        tabs.addTab(self.pumpProbeTabUI(),  "&Pump-probe")
         topLayout.addWidget(tabs)
 
         outerLayout.addLayout(topLayout)
