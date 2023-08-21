@@ -1,7 +1,8 @@
 import sys
 # import magnetControl as mc
-# Some comment
+
 from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -75,13 +76,13 @@ class Magnet_CFU(QMainWindow):
         le_Amper       = QLineEdit(self)
         # dsb_I_start.valueChanged.connect(lambda: a)
 
-        btn_IDN        = QPushButton("IDN")
-        btn_Start      = QPushButton("Start")
-        btn_Stop       = QPushButton("Stop")
+        btn_IDN        = QPushButton("&IDN")
+        btn_Start      = QPushButton("&Start")
+        btn_Stop       = QPushButton("&Stop")
         btn_Reset      = QPushButton("Reset")
-        btn_Start_Meas = QPushButton("Start Measurment")
-        btn_Open       = QPushButton("Open...")
-        btn_Save       = QPushButton("Save")
+        btn_Start_Meas = QPushButton("&Start Measurment")
+        btn_Open       = QPushButton("&Open...")
+        btn_Save       = QPushButton("&Save")
 
         top_layout.addWidget(btn_IDN,           0, 0)
         top_layout.addWidget(lbl_COM,           1, 0)
@@ -151,6 +152,12 @@ class Magnet_CFU(QMainWindow):
     #             f.write(self.data_file.toPlainText())
 
 app = QApplication(sys.argv)
+
+app.setStyleSheet(
+    "QMainWindow { background-color: black;}"
+    "QPushButton {font: 12px Roboto Mono;}"
+)
+
 
 window = Magnet_CFU()
 window.show()
