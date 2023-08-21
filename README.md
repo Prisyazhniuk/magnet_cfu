@@ -1,2 +1,2 @@
-# magnet_cfu
-Test project for controlling the magnet power supply
+# magnet_cfu for 17 lab.
+Project for controlling the magnet power supply
