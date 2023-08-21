@@ -1,7 +1,7 @@
 import sys
 import os
 # import magnetControl as mc
-# 123
+
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
@@ -19,7 +19,8 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QDoubleSpinBox,
     QGroupBox,
-    QSpinBox
+    QSpinBox,
+    QComboBox
 )
 
 
@@ -31,7 +32,6 @@ class Magnet_CFU(QMainWindow):
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
         self.setWindowTitle("Magnet CFU")
 
-        # self.setWindowIcon(QIcon('\\magnet_cfu\\icons\\01.png'))
         container    = QWidget()
         tabs         = QTabWidget()
         outerLayout  = QVBoxLayout()
@@ -40,7 +40,7 @@ class Magnet_CFU(QMainWindow):
         bottomLayout = QGridLayout()
 
         tabs.addTab(self.hysteresisTabUI(), "&Hysteresis")
-        tabs.addTab(self.pumpProbeTabUI(),  "&Pump-probe")
+        tabs.addTab(self.ConfigureTabUI(),  "&Configure")
         topLayout.addWidget(tabs)
 
         outerLayout.addLayout(topLayout)
@@ -53,9 +53,9 @@ class Magnet_CFU(QMainWindow):
 
     def hysteresisTabUI(self):
         hysteresis_tab = QWidget()
-        middle_layout  = QGridLayout()
         outer_layout   = QVBoxLayout()
         top_layout     = QGridLayout()
+        middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
         ml_layout      = QVBoxLayout()
         mc_layout      = QVBoxLayout()
@@ -73,27 +73,27 @@ class Magnet_CFU(QMainWindow):
         dsb_I_start    = QDoubleSpinBox(self)
         dsb_I_stop     = QDoubleSpinBox(self)
         dsb_Step       = QDoubleSpinBox(self)
-        le_IDN         = QLineEdit(self)
         sb_Loops       = QSpinBox(self)
-        le_COM         = QLineEdit(self)
-        le_Resistance  = QLineEdit(self)
-        le_Volt        = QLineEdit(self)
-        le_Amper       = QLineEdit(self)
+        le_IDN         = QLineEdit()
+        le_Resistance  = QLineEdit()
+        le_Volt        = QLineEdit()
+        le_Amper       = QLineEdit()
+        cb_COM         = QComboBox()
         # dsb_I_start.valueChanged.connect(lambda: a)
 
         btn_IDN        = QPushButton("&IDN")
-        btn_Start      = QPushButton("&Start")
+        btn_Start      = QPushButton("&Set Current")
         btn_Stop       = QPushButton("&Stop")
         btn_Reset      = QPushButton("Reset")
         btn_Start_Meas = QPushButton("&Start Measurment")
         btn_Open       = QPushButton("&Open...")
         btn_Save       = QPushButton("&Save")
 
-        top_layout.addWidget(btn_IDN,           0, 0)
-        top_layout.addWidget(lbl_COM,           1, 0)
+        top_layout.addWidget(lbl_COM,           0, 0)
+        top_layout.addWidget(cb_COM,            0, 1)
+        top_layout.addWidget(btn_IDN,           1, 0)
         top_layout.addWidget(lbl_Resistance,    2, 0)
-        top_layout.addWidget(le_IDN,            0, 1)
-        top_layout.addWidget(le_COM,            1, 1)
+        top_layout.addWidget(le_IDN,            1, 1)
         top_layout.addWidget(le_Resistance,     2, 1)
 
         middle_layout.addWidget(lbl_I_start,    0, 0)
@@ -122,11 +122,22 @@ class Magnet_CFU(QMainWindow):
         dsb_I_start.setRange(-7.5, 7.5)
         dsb_I_stop.setRange(-7.5, 7.5)
         dsb_Step.setRange(0.01, 0.05)
+        cb_COM.setFixedWidth(50)
         sb_Loops.setValue(1)
+
+        lbl_Resistance.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_I_stop.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_Loops.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_Amper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_Step.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_COM.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         box_1 = QGroupBox("Info")
         box_2 = QGroupBox("Value")
         box_3 = QGroupBox("Control")
+
         box_1.setLayout(top_layout)
         box_2.setLayout(middle_layout)
         box_3.setLayout(bottom_layout)
@@ -140,13 +151,13 @@ class Magnet_CFU(QMainWindow):
         hysteresis_tab.setLayout(outer_layout)
         return hysteresis_tab
 
-    def pumpProbeTabUI(self):
-        pumpProbeTab = QWidget()
+    def ConfigureTabUI(self):
+        configure_tab = QWidget()
         layout = QVBoxLayout()
         layout.addWidget(QCheckBox("Network Option 1"))
         layout.addWidget(QCheckBox("Network Option 2"))
-        pumpProbeTab.setLayout(layout)
-        return pumpProbeTab
+        configure_tab.setLayout(layout)
+        return configure_tab
 
 
     # def save_data(self):
