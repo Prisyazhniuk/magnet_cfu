@@ -3,7 +3,7 @@ import os
 # import magnetControl as mc
 
 from PyQt6.QtCore import QSize, Qt, pyqtSlot
-from PyQt6.QtGui import QIcon, QCursor
+from PyQt6.QtGui import QIcon, QFont, QFontDatabase
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -29,6 +29,7 @@ class MagnetCFU(QMainWindow):
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
         self.setWindowTitle("Magnet CFU")
+        self.setContentsMargins(5, 5, 5, 5)
 
         container    = QWidget()
         tabs         = QTabWidget()
@@ -55,9 +56,6 @@ class MagnetCFU(QMainWindow):
         top_layout     = QGridLayout()
         middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
-        ml_layout      = QVBoxLayout()
-        mc_layout      = QVBoxLayout()
-        mr_layout      = QVBoxLayout()
 
         lbl_COM        = QLabel("COM")
         lbl_I_start    = QLabel("I start")
@@ -156,9 +154,12 @@ class MagnetCFU(QMainWindow):
         le_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
         le_Amper.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        box_1 = QGroupBox("Info", checkable=False)
+        # lbl_COM.setFont(QFont('Verdana', 10))
+
+        box_1 = QGroupBox("Info")
         box_2 = QGroupBox("Value")
         box_3 = QGroupBox("Control")
+        # box_1.setFont(QFont("Verdana", 10))
 
         box_1.setLayout(top_layout)
         box_2.setLayout(middle_layout)
@@ -193,10 +194,18 @@ class MagnetCFU(QMainWindow):
 
 app = QApplication(sys.argv)
 
-app.setStyleSheet(
-    "QMainWindow { background-color: rgb(52, 50, 51); }"
-    "QPushButton { font: 12px Roboto Mono; }"
-)
+# app.setStyleSheet(
+#     "QMainWindow  { background-color: black; }"
+#     "QTabWidget::pane { border-top: 2px solid #0d192b; }"
+#     "QTabBar::tab:selected, QTabBar::tab:hover { background: #0aa09e; color: black; }"
+# )
+
+
+# with open('styles.qss', 'r') as f:
+#     style = f.read()
+#     # Set the stylesheet of the application
+#     app.setStyleSheet(style)
+
 
 window = MagnetCFU()
 window.show()
