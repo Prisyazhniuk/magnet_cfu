@@ -2,8 +2,8 @@ import sys
 import os
 # import magnetControl as mc
 
-from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtGui import QIcon
+from PyQt6.QtCore import QSize, Qt, pyqtSlot
+from PyQt6.QtGui import QIcon, QCursor
 from PyQt6.QtWidgets import (
     QApplication,
     QMainWindow,
@@ -12,10 +12,8 @@ from PyQt6.QtWidgets import (
     QLabel,
     QLineEdit,
     QWidget,
-    QFormLayout,
     QTabWidget,
     QCheckBox,
-    QFileDialog,
     QGridLayout,
     QDoubleSpinBox,
     QGroupBox,
@@ -24,7 +22,7 @@ from PyQt6.QtWidgets import (
 )
 
 
-class Magnet_CFU(QMainWindow):
+class MagnetCFU(QMainWindow):
     def __init__(self):
         super().__init__()
 
@@ -40,7 +38,7 @@ class Magnet_CFU(QMainWindow):
         bottomLayout = QGridLayout()
 
         tabs.addTab(self.hysteresisTabUI(), "&Hysteresis")
-        tabs.addTab(self.ConfigureTabUI(),  "&Configure")
+        tabs.addTab(self.ConfigureTabUI(), "&Configure")
         topLayout.addWidget(tabs)
 
         outerLayout.addLayout(topLayout)
@@ -107,8 +105,8 @@ class Magnet_CFU(QMainWindow):
         middle_layout.addWidget(dsb_I_stop,     3, 0)
         middle_layout.addWidget(dsb_Step,       1, 1)
         middle_layout.addWidget(sb_Loops,       3, 1)
-        middle_layout.addWidget(le_Amper,       3, 2)
-        middle_layout.addWidget(le_Volt,        1, 2)
+        middle_layout.addWidget(le_Amper,       1, 2)
+        middle_layout.addWidget(le_Volt,        3, 2)
 
         bottom_layout.addWidget(btn_Start,      0, 0)
         bottom_layout.addWidget(btn_Stop,       0, 1)
@@ -122,8 +120,24 @@ class Magnet_CFU(QMainWindow):
         dsb_I_start.setRange(-7.5, 7.5)
         dsb_I_stop.setRange(-7.5, 7.5)
         dsb_Step.setRange(0.01, 0.05)
+
         cb_COM.setFixedWidth(50)
         sb_Loops.setValue(1)
+
+        btn_Start_Meas.setCheckable(1)
+        btn_Reset.setCheckable(1)
+        btn_Start.setCheckable(1)
+        btn_IDN.setCheckable(1)
+
+        le_IDN.setReadOnly(1)
+        le_Volt.setReadOnly(1)
+        le_Amper.setReadOnly(1)
+        le_Resistance.setReadOnly(1)
+
+        le_Amper.setFixedWidth(50)
+        le_Volt.setFixedWidth(50)
+        dsb_Step.setFixedWidth(50)
+        dsb_I_start.setFixedWidth(50)
 
         lbl_Resistance.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -134,7 +148,15 @@ class Magnet_CFU(QMainWindow):
         lbl_Step.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_COM.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        box_1 = QGroupBox("Info")
+        dsb_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dsb_I_stop.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        dsb_Step.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        sb_Loops.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        le_IDN.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        le_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        le_Amper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+
+        box_1 = QGroupBox("Info", checkable=False)
         box_2 = QGroupBox("Value")
         box_3 = QGroupBox("Control")
 
@@ -154,11 +176,12 @@ class Magnet_CFU(QMainWindow):
     def ConfigureTabUI(self):
         configure_tab = QWidget()
         layout = QVBoxLayout()
+
         layout.addWidget(QCheckBox("Network Option 1"))
         layout.addWidget(QCheckBox("Network Option 2"))
         configure_tab.setLayout(layout)
-        return configure_tab
 
+        return configure_tab
 
     # def save_data(self):
     #     file_name, _ = QFileDialog.getSaveFileName(self, 'Save File', '', 'Data Files (*.dat)')
@@ -167,15 +190,15 @@ class Magnet_CFU(QMainWindow):
     #         with open(file_name, 'w') as f:
     #             f.write(self.data_file.toPlainText())
 
+
 app = QApplication(sys.argv)
 
 app.setStyleSheet(
-    "QMainWindow { background-color: black;}"
-    "QPushButton {font: 12px Roboto Mono;}"
+    "QMainWindow { background-color: rgb(52, 50, 51); }"
+    "QPushButton { font: 12px Roboto Mono; }"
 )
 
-
-window = Magnet_CFU()
+window = MagnetCFU()
 window.show()
 
 app.exec()
