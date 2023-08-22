@@ -1,10 +1,10 @@
 import sys
 import os
-# import magnetControl as mc
+import magnetControl as mc
 
-from PyQt6.QtCore import QSize, Qt, pyqtSlot
-from PyQt6.QtGui import QIcon, QFont, QFontDatabase
-from PyQt6.QtWidgets import (
+from PyQt5.QtCore import QSize, Qt, pyqtSlot
+from PyQt5.QtGui import QIcon, QFont, QFontDatabase
+from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
     QPushButton,
@@ -119,7 +119,7 @@ class MagnetCFU(QMainWindow):
         dsb_I_stop.setRange(-7.5, 7.5)
         dsb_Step.setRange(0.01, 0.05)
 
-        cb_COM.setFixedWidth(50)
+        cb_COM.setFixedWidth(55)
         sb_Loops.setValue(1)
 
         btn_Start_Meas.setCheckable(1)
@@ -160,6 +160,7 @@ class MagnetCFU(QMainWindow):
         box_2 = QGroupBox("Value")
         box_3 = QGroupBox("Control")
         # box_1.setFont(QFont("Verdana", 10))
+        cb_COM.addItems(mc.serial_ports())
 
         box_1.setLayout(top_layout)
         box_2.setLayout(middle_layout)
