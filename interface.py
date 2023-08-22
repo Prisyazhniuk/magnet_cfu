@@ -1,8 +1,8 @@
-import sys
 import os
 import magnetControl as mc
 
-from PyQt5.QtCore import QSize, Qt, pyqtSlot
+from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal
+from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtGui import QIcon, QFont, QFontDatabase
 from PyQt5.QtWidgets import (
     QApplication,
@@ -192,23 +192,3 @@ class MagnetCFU(QMainWindow):
     #         with open(file_name, 'w') as f:
     #             f.write(self.data_file.toPlainText())
 
-
-app = QApplication(sys.argv)
-
-# app.setStyleSheet(
-#     "QMainWindow  { background-color: black; }"
-#     "QTabWidget::pane { border-top: 2px solid #0d192b; }"
-#     "QTabBar::tab:selected, QTabBar::tab:hover { background: #0aa09e; color: black; }"
-# )
-
-
-# with open('styles.qss', 'r') as f:
-#     style = f.read()
-#     # Set the stylesheet of the application
-#     app.setStyleSheet(style)
-
-
-window = MagnetCFU()
-window.show()
-
-app.exec()
