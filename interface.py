@@ -7,6 +7,7 @@ from PyQt5.QtGui import QIcon, QFont, QFontDatabase
 from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
+    QToolBar,
     QPushButton,
     QVBoxLayout,
     QLabel,
@@ -162,6 +163,9 @@ class MagnetCFU(QMainWindow):
         # box_1.setFont(QFont("Verdana", 10))
         cb_COM.addItems(mc.serial_ports())
 
+        # self.toolBar = ToolBar(self)
+        # self.addToolBar(self.toolBar)
+
         box_1.setLayout(top_layout)
         box_2.setLayout(middle_layout)
         box_3.setLayout(bottom_layout)
@@ -179,11 +183,76 @@ class MagnetCFU(QMainWindow):
         configure_tab = QWidget()
         layout = QVBoxLayout()
 
-        layout.addWidget(QCheckBox("Network Option 1"))
-        layout.addWidget(QCheckBox("Network Option 2"))
+        btn_port_open = QPushButton("Open")
+        btn_port_open.setCheckable(True)
+
+        cb_port_Names = QComboBox()
+        cb_port_Names.addItems([cb_port_Names() for port in QSerialPortInfo().availablePorts()])
+
+        cb_baud_rates = QComboBox()
+        cb_baud_rates.addItems([
+            '110', '300', '600', '1200', '2400', '4800', '9600', '14400', '19200', '28800',
+            '31250', '38400', '51200', '56000', '57600', '76800', '115200', '128000', '230400', '256000', '921600'
+        ])
+
+        cb_data_bits = QComboBox()
+        cb_data_bits.addItems(['5 bit', '6 bit', '7 bit', '8 bit'])
+
+        _parity = QComboBox()
+        _parity.addItems(['No Parity', 'Even Parity', 'Odd Parity', 'Space Parity', 'Mark Parity'])
+
+        cb_stop_bits = QComboBox()
+        cb_stop_bits.addItems(['One Stop', 'One And Half Stop', 'Two Stop'])
+
+        _flowControl = QComboBox()
+        _flowControl.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
+
+        layout.addWidget(btn_port_open)
+        layout.addWidget(cb_port_Names)
+        layout.addWidget(cb_baud_rates)
+        layout.addWidget(cb_data_bits)
+        layout.addWidget(_parity)
+        layout.addWidget(cb_stop_bits)
+        layout.addWidget(_flowControl)
         configure_tab.setLayout(layout)
 
         return configure_tab
+
+# class ToolBar(QToolBar):
+#     def __init__(self, parent):
+#         super(ToolBar, self).__init__(parent)
+#
+#         btn_port_open = QPushButton("Open")
+#         btn_port_open.setCheckable(True)
+#
+#         cb_port_Names = QComboBox()
+#         cb_port_Names.addItems([cb_port_Names() for port in QSerialPortInfo().availablePorts()])
+#
+#         cb_baud_rates = QComboBox()
+#         cb_baud_rates.addItems([
+#             '110', '300', '600', '1200', '2400', '4800', '9600', '14400', '19200', '28800',
+#             '31250', '38400', '51200', '56000', '57600', '76800', '115200', '128000', '230400', '256000', '921600'
+#         ])
+#
+#         cb_data_bits = QComboBox()
+#         cb_data_bits.addItems(['5 bit', '6 bit', '7 bit', '8 bit'])
+#
+#         _parity = QComboBox()
+#         _parity.addItems(['No Parity', 'Even Parity', 'Odd Parity', 'Space Parity', 'Mark Parity'])
+#
+#         cb_stop_bits = QComboBox()
+#         cb_stop_bits.addItems(['One Stop', 'One And Half Stop', 'Two Stop'])
+#
+#         _flowControl = QComboBox()
+#         _flowControl.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
+#
+#         self.addWidget(btn_port_open)
+#         self.addWidget(cb_port_Names)
+#         self.addWidget(cb_baud_rates)
+#         self.addWidget(cb_data_bits)
+#         self.addWidget(_parity)
+#         self.addWidget(cb_stop_bits)
+#         self.addWidget(_flowControl)
 
     # def save_data(self):
     #     file_name, _ = QFileDialog.getSaveFileName(self, 'Save File', '', 'Data Files (*.dat)')
