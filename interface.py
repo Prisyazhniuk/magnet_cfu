@@ -1,6 +1,6 @@
-# -*- coding: utf-8 -*-
 import os
 # import magnetControl as mc
+import app_widgets as wid
 
 from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
@@ -9,6 +9,7 @@ from PyQt5.QtWidgets import (
     QApplication,
     QMainWindow,
     QToolBar,
+    QStatusBar,
     QPushButton,
     QVBoxLayout,
     QLabel,
@@ -20,13 +21,21 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QGroupBox,
     QSpinBox,
-    QComboBox
+    QComboBox,
 )
 
 
 class MagnetCFU(QMainWindow):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super(QMainWindow, self).__init__(parent)
+
+
+        self.ports = []
+        self.serial_data = ''
+        self.serial_port = QSerialPort()
+        self.data_port_read = ''
+
+
 
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
@@ -40,6 +49,10 @@ class MagnetCFU(QMainWindow):
         middleLayout = QGridLayout()
         bottomLayout = QGridLayout()
 
+        self.setStatusBar(QStatusBar(self))
+        self.status_text = QLabel(self)
+        self.statusBar().addWidget(self.status_text)
+
         tabs.addTab(self.hysteresisTabUI(), "&Hysteresis")
         tabs.addTab(self.ConfigureTabUI(), "&Configure")
         topLayout.addWidget(tabs)
@@ -48,6 +61,8 @@ class MagnetCFU(QMainWindow):
         outerLayout.addLayout(middleLayout)
         outerLayout.addLayout(bottomLayout)
         container.setLayout(outerLayout)
+
+        baudrate = []
 
         self.setCentralWidget(container)
         self.resize(300, 500)
@@ -121,7 +136,7 @@ class MagnetCFU(QMainWindow):
         dsb_I_stop.setRange(-7.5, 7.5)
         dsb_Step.setRange(0.01, 0.05)
 
-        cb_COM.setFixedWidth(55)
+        cb_COM.setFixedWidth(90)
         sb_Loops.setValue(1)
 
         btn_Start_Meas.setCheckable(1)
@@ -134,10 +149,13 @@ class MagnetCFU(QMainWindow):
         le_Amper.setReadOnly(1)
         le_Resistance.setReadOnly(1)
 
-        le_Amper.setFixedWidth(50)
-        le_Volt.setFixedWidth(50)
-        dsb_Step.setFixedWidth(50)
-        dsb_I_start.setFixedWidth(50)
+        le_Amper.setFixedWidth(55)
+        le_Volt.setFixedWidth(55)
+        dsb_Step.setFixedWidth(55)
+        dsb_I_start.setFixedWidth(55)
+        dsb_I_stop.setFixedWidth(55)
+
+        cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
 
         lbl_Resistance.setAlignment(Qt.AlignmentFlag.AlignCenter)
         lbl_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -162,10 +180,7 @@ class MagnetCFU(QMainWindow):
         box_2 = QGroupBox("Value")
         box_3 = QGroupBox("Control")
         # box_1.setFont(QFont("Verdana", 10))
-        # cb_COM.addItems(mc.serial_ports())
 
-        # self.toolBar = ToolBar(self)
-        # self.addToolBar(self.toolBar)
 
         box_1.setLayout(top_layout)
         box_2.setLayout(middle_layout)
@@ -188,8 +203,7 @@ class MagnetCFU(QMainWindow):
         btn_port_open.setCheckable(True)
 
         cb_port_names = QComboBox()
-        # cb_port_names.addItems(cb_port_names)
-        cb_port_names.addItems([ port.portName() for port in QSerialPortInfo().availablePorts() ])
+        cb_port_names.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
         # for port in QSerialPortInfo().availablePorts():
         #     cb_port_names.addItems([str(port)])
 
@@ -222,46 +236,48 @@ class MagnetCFU(QMainWindow):
 
         return configure_tab
 
-# class ToolBar(QToolBar):
-#     def __init__(self, parent):
-#         super(ToolBar, self).__init__(parent)
-#
-#         btn_port_open = QPushButton("Open")
-#         btn_port_open.setCheckable(True)
-#
-#         cb_port_Names = QComboBox()
-#         cb_port_Names.addItems([cb_port_Names() for port in QSerialPortInfo().availablePorts()])
-#
-#         cb_baud_rates = QComboBox()
-#         cb_baud_rates.addItems([
-#             '110', '300', '600', '1200', '2400', '4800', '9600', '14400', '19200', '28800',
-#             '31250', '38400', '51200', '56000', '57600', '76800', '115200', '128000', '230400', '256000', '921600'
-#         ])
-#
-#         cb_data_bits = QComboBox()
-#         cb_data_bits.addItems(['5 bit', '6 bit', '7 bit', '8 bit'])
-#
-#         _parity = QComboBox()
-#         _parity.addItems(['No Parity', 'Even Parity', 'Odd Parity', 'Space Parity', 'Mark Parity'])
-#
-#         cb_stop_bits = QComboBox()
-#         cb_stop_bits.addItems(['One Stop', 'One And Half Stop', 'Two Stop'])
-#
-#         _flowControl = QComboBox()
-#         _flowControl.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
-#
-#         self.addWidget(btn_port_open)
-#         self.addWidget(cb_port_Names)
-#         self.addWidget(cb_baud_rates)
-#         self.addWidget(cb_data_bits)
-#         self.addWidget(_parity)
-#         self.addWidget(cb_stop_bits)
-#         self.addWidget(_flowControl)
 
-    # def save_data(self):
-    #     file_name, _ = QFileDialog.getSaveFileName(self, 'Save File', '', 'Data Files (*.dat)')
-    #
-    #     if file_name:
-    #         with open(file_name, 'w') as f:
-    #             f.write(self.data_file.toPlainText())
+    def close_port(self):
+        self.serial_port.close()
 
+    def receive_port(self):
+        data = self.serial_port.readAll()
+        self.serialData = data.data().decode('utf8')
+
+        return self.serialData
+
+    def receive_data(self):
+        dataRead = self.serial_port.read(1).decode('utf8')
+
+        self.packet_received.emit(dataRead)
+
+    def receive_multiple_data(self):
+        data = self.serial_port.readAll()
+
+        dataRead = data.data().decode('utf8')
+
+        self.packet_received.emit(dataRead)
+
+    def write_port(self, data):
+        self.serial_port.writeData(data.encode())
+
+    def write_port_list(self, data):
+        for value in data:
+            self.serial_port.writeData(value.encode())
+
+
+    def init_port(self):
+
+        portOpen = self.serialPort.open()
+
+        if portOpen:
+            self.serial_port.setBaudRate(QSerialPort.Baud115200)
+            self.serial_port.setDataBits(QSerialPort.Data8)
+            self.serial_port.setParity(QSerialPort.NoParity)
+            self.serial_port.setStopBits(QSerialPort.OneStop)
+            self.serial_port.setFlowControl(QSerialPort.NoFlowControl)
+
+            return True
+
+        else:
+            return False

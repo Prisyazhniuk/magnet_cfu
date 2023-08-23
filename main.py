@@ -16,6 +16,11 @@ app = QApplication(sys.argv)
 #     # Set the stylesheet of the application
 #     app.setStyleSheet(style)
 
+# i.MagnetCFU.init_port()
+# i.MagnetCFU.write_port("A007*IDN?")
+# i.MagnetCFU.receive_data()
+# i.MagnetCFU.close_port()
+
 window = i.MagnetCFU()
 window.show()
 
