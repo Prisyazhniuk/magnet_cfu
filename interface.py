@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 import os
-import magnetControl as mc
+# import magnetControl as mc
 
 from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
@@ -161,7 +162,7 @@ class MagnetCFU(QMainWindow):
         box_2 = QGroupBox("Value")
         box_3 = QGroupBox("Control")
         # box_1.setFont(QFont("Verdana", 10))
-        cb_COM.addItems(mc.serial_ports())
+        # cb_COM.addItems(mc.serial_ports())
 
         # self.toolBar = ToolBar(self)
         # self.addToolBar(self.toolBar)
@@ -186,8 +187,11 @@ class MagnetCFU(QMainWindow):
         btn_port_open = QPushButton("Open")
         btn_port_open.setCheckable(True)
 
-        cb_port_Names = QComboBox()
-        cb_port_Names.addItems([cb_port_Names() for port in QSerialPortInfo().availablePorts()])
+        cb_port_names = QComboBox()
+        # cb_port_names.addItems(cb_port_names)
+        cb_port_names.addItems([ port.portName() for port in QSerialPortInfo().availablePorts() ])
+        # for port in QSerialPortInfo().availablePorts():
+        #     cb_port_names.addItems([str(port)])
 
         cb_baud_rates = QComboBox()
         cb_baud_rates.addItems([
@@ -208,7 +212,7 @@ class MagnetCFU(QMainWindow):
         _flowControl.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
 
         layout.addWidget(btn_port_open)
-        layout.addWidget(cb_port_Names)
+        layout.addWidget(cb_port_names)
         layout.addWidget(cb_baud_rates)
         layout.addWidget(cb_data_bits)
         layout.addWidget(_parity)
