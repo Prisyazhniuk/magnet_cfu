@@ -6,21 +6,14 @@ from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtGui import QIcon, QFont, QFontDatabase
 from PyQt5.QtWidgets import (
-    QApplication,
     QMainWindow,
-    QToolBar,
     QStatusBar,
     QPushButton,
     QVBoxLayout,
     QLabel,
-    QLineEdit,
     QWidget,
     QTabWidget,
-    QCheckBox,
     QGridLayout,
-    QDoubleSpinBox,
-    QGroupBox,
-    QSpinBox,
     QComboBox,
 )
 
@@ -68,8 +61,8 @@ class MagnetCFU(QMainWindow):
         self.resize(400, 500)
 
     def hysteresisTabUI(self):
-
         hysteresis_tab = QWidget()
+
         outer_layout   = QVBoxLayout()
         top_layout     = QGridLayout()
         middle_layout  = QGridLayout()
@@ -105,18 +98,14 @@ class MagnetCFU(QMainWindow):
         bottom_layout.addWidget(widgets.btn_Open,       2, 0)
         bottom_layout.addWidget(widgets.btn_Save,       2, 1)
 
-        box_1 = QGroupBox("Info")
-        box_2 = QGroupBox("Value")
-        box_3 = QGroupBox("Control")
-        # box_1.setFont(QFont("Verdana", 10))
 
-        box_1.setLayout(top_layout)
-        box_2.setLayout(middle_layout)
-        box_3.setLayout(bottom_layout)
+        widgets.box_1.setLayout(top_layout)
+        widgets.box_2.setLayout(middle_layout)
+        widgets.box_3.setLayout(bottom_layout)
 
-        outer_layout.addWidget(box_1)
-        outer_layout.addWidget(box_2)
-        outer_layout.addWidget(box_3)
+        outer_layout.addWidget(widgets.box_1)
+        outer_layout.addWidget(widgets.box_2)
+        outer_layout.addWidget(widgets.box_3)
 
         hysteresis_tab.setLayout(outer_layout)
         return hysteresis_tab

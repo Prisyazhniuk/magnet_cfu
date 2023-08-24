@@ -1,22 +1,10 @@
-import os
-# import magnetControl as mc
-
-from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal
-from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
-from PyQt5.QtGui import QIcon, QFont, QFontDatabase
+from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal
+from PyQt5.QtSerialPort import QSerialPortInfo
 from PyQt5.QtWidgets import (
-    QApplication,
-    QMainWindow,
-    QToolBar,
-    QStatusBar,
     QPushButton,
-    QVBoxLayout,
     QLabel,
     QLineEdit,
     QWidget,
-    QTabWidget,
-    QCheckBox,
-    QGridLayout,
     QDoubleSpinBox,
     QGroupBox,
     QSpinBox,
@@ -58,6 +46,10 @@ class WidgetsForApp(QWidget):
         self.btn_Open = QPushButton("&Open...")
         self.btn_Save = QPushButton("&Save")
 
+        self.box_1 = QGroupBox("Info")
+        self.box_2 = QGroupBox("Value")
+        self.box_3 = QGroupBox("Control")
+
         self.dsb_I_start.setRange(-7.5, 7.5)
         self.dsb_I_stop.setRange(-7.5, 7.5)
         self.dsb_I_start.setRange(-7.5, 7.5)
@@ -79,28 +71,34 @@ class WidgetsForApp(QWidget):
 
         self.le_Amper.setFixedWidth(55)
         self.le_Volt.setFixedWidth(55)
+
         self.dsb_Step.setFixedWidth(55)
         self.dsb_I_start.setFixedWidth(55)
         self.dsb_I_stop.setFixedWidth(55)
+
+        self.lbl_Resistance.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.dsb_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.dsb_I_stop.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_I_stop.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_Loops.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_Amper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_Step.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.dsb_Step.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.sb_Loops.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.le_Amper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.lbl_COM.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.le_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.le_IDN.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         # self.lbl_COM.setFont(QFont('Arial', 8))
         # self.lbl_Resistance.setFont(QFont('Arial', 8))
 
         self.cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
 
-        self.lbl_Resistance.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_I_stop.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_Loops.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_Amper.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_Step.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.lbl_COM.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.btn_IDN.clicked.connect(self.on_clicked_IDN)
 
-        self.dsb_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.dsb_I_stop.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.dsb_Step.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.sb_Loops.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.le_IDN.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.le_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.le_Amper.setAlignment(Qt.AlignmentFlag.AlignCenter)
+    def on_clicked_IDN(self):
+        self.btn_IDN.setDisabled(True)
+        self.btn_Stop.setEnabled(True)
