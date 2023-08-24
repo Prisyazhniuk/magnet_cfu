@@ -4,7 +4,7 @@ QMainWindow  {
     background-color: #F1F0E8;
 }
 QTabWidget {
-    font-family: sans-serif; font-size: 10pt;
+    font-family: sans-serif; font-size: 9pt;
     }
 QTabWidget::pane {
     border-top: 2px solid #272829;
@@ -16,25 +16,25 @@ QTabBar::tab:hover {
     background: #61677A; color: #FFF6E0C;
     }
 QPushButton {
-    padding: 6px; color: #27282; font-family: sans-serif; font-size: 10pt;
+    padding: 6px; color: #27282; font-family: sans-serif; font-size: 9pt;
     }
 QLineEdit {
-    margin: 0; font-size: 12pt;
+    margin: 0; font-size: 9pt;
     }
 QLabel {
-    font-family: sans-serif; font-size: 10pt;
+    font-family: sans-serif; font-size: 9pt;
     }
 QComboBox {
-    font-family: sans-serif; font-size: 10pt;
+    font-family: sans-serif; font-size: 9pt;
     }
 QSpinBox {
-    font-family: sans-serif; font-size: 10pt;
+    font-family: sans-serif; font-size: 9pt;
     }
 QDoubleSpinBox {
-    font-family: sans-serif; font-size: 10pt;
+    font-family: sans-serif; font-size: 9pt;
     }
 QGroupBox {
-    font-size: 9pt;
+    font-size: 8pt;
     }
 QGroupBox::title {
     subcontrol-origin: margin; subcontrol-position: top center; padding: 0 3px; color: #61677A;
@@ -42,102 +42,102 @@ QGroupBox::title {
 
 
 
-/* QWidget {
-   background-color: #000000;
-}
+/* QWidget {*/
+/*   background-color: #000000;*/
+/*}*/
 
-QTabWidget::pane { /* The tab widget frame */
-    border-top: 2px solid #0D192B;
-}
-QTabWidget::tab-bar {
-    left: 5px; /* move to the right by 5px */
-}
-/* Style the tab using the tab sub-control. Note that
-    it reads QTabBar _not_ QTabWidget */
-QTabBar::tab {
-    background: #1B263B;
-    border-top-left-radius: 4px;
-    border-top-right-radius: 4px;
-    min-width: 8ex;
-    padding: 2px;
-    color: #E0E1DD;
-}
+/*QTabWidget::pane { *//* The tab widget frame */
+/*    border-top: 2px solid #0D192B;*/
+/*}*/
+/*QTabWidget::tab-bar {*/
+/*    left: 5px; *//* move to the right by 5px */
+/*}*/
+/* Style the tab using the tab sub-control. Note that*/
+/*    it reads QTabBar _not_ QTabWidget */
+/*QTabBar::tab {*/
+/*    background: #1B263B;*/
+/*    border-top-left-radius: 4px;*/
+/*    border-top-right-radius: 4px;*/
+/*    min-width: 8ex;*/
+/*    padding: 2px;*/
+/*    color: #E0E1DD;*/
+/*}*/
 
-QTabBar::tab:selected, QTabBar::tab:hover {
-    background: #0AA09E;
-    color: #000000;
+/*QTabBar::tab:selected, QTabBar::tab:hover {*/
+/*    background: #0AA09E;*/
+/*    color: #000000;*/
 
-}
+/*}*/
 
-QTabBar::tab:!selected {
-    margin-top: 2px; /* make non-selected tabs look smaller */
-}
+/*QTabBar::tab:!selected {*/
+/*    margin-top: 2px; *//* make non-selected tabs look smaller */
+/*}*/
 
-QLineEdit {
-   background-color: #E0E1DD;
-   color: #415A77;
-   font-style: italic;
-   font-weight: bold;
-}
+/*QLineEdit {*/
+/*   background-color: #E0E1DD;*/
+/*   color: #415A77;*/
+/*   font-style: italic;*/
+/*   font-weight: bold;*/
+/*}*/
 
-QLabel {
-    background-color: #1B263B;
-    color: #E0E1DD;
-}
+/*QLabel {*/
+/*    background-color: #1B263B;*/
+/*    color: #E0E1DD;*/
+/*}*/
 
-QPushButton {
-   background-color: #778DA9;
-   color: #0D1B2A;
-   border-radius: 3px;
-   border-style: none;
-   height: 25px;
-}
+/*QPushButton {*/
+/*   background-color: #778DA9;*/
+/*   color: #0D1B2A;*/
+/*   border-radius: 3px;*/
+/*   border-style: none;*/
+/*   height: 25px;*/
+/*}*/
 
-QPushButton:hover {
-   background-color: #415A77;
-   color: #E0E1DD;
-   border-radius: 3px;
-   border-style: none;
-   height: 25px;
-}
+/*QPushButton:hover {*/
+/*   background-color: #415A77;*/
+/*   color: #E0E1DD;*/
+/*   border-radius: 3px;*/
+/*   border-style: none;*/
+/*   height: 25px;*/
+/*}*/
 
-QPushButton:focus {
-   background-color: #1B263B;
-   color: #E0E1DD;
-   border-radius: 3px;
-   border-style: none;
-   height: 25px;
-}
+/*QPushButton:focus {*/
+/*   background-color: #1B263B;*/
+/*   color: #E0E1DD;*/
+/*   border-radius: 3px;*/
+/*   border-style: none;*/
+/*   height: 25px;*/
+/*}*/
 
-QPushButton:pressed {
-    background-color: #415A77;
-    border-radius: 3px;
+/*QPushButton:pressed {*/
+/*    background-color: #415A77;*/
+/*    border-radius: 3px;*/
 
-}
+/*}*/
 
-QComboBox {
-    background-color: #E0E1DD;
-    color: #1B263B;
-    border-radius: 3px;
-}
-QGroupBox {
-    background-color: #000000;
-    border: 2px solid #0D192B;
-    border-radius: 5px;
-    margin-top: 1ex; /* leave space at the top for the title */
-    font-size: 10pt;
-}
+/*QComboBox {*/
+/*    background-color: #E0E1DD;*/
+/*    color: #1B263B;*/
+/*    border-radius: 3px;*/
+/*}*/
+/*QGroupBox {*/
+/*    background-color: #000000;*/
+/*    border: 2px solid #0D192B;*/
+/*    border-radius: 5px;*/
+/*    margin-top: 1ex; *//* leave space at the top for the title */
+/*    font-size: 10pt;*/
+/*}*/
 
-QGroupBox::title {
-    subcontrol-origin: margin;
-    subcontrol-position: top center; /* position at the top center */
-    padding: 0 3px;
-    color: #778DA9;
-    font-style: italic;
-    font-weight: bold;
+/*QGroupBox::title {*/
+/*    subcontrol-origin: margin;*/
+/*    subcontrol-position: top center; *//* position at the top center */
+/*    padding: 0 3px;*/
+/*    color: #778DA9;*/
+/*    font-style: italic;*/
+/*    font-weight: bold;*/
 
-}
-QGroupBox::indicator {
-    width: 13px;
-    height: 13px;
-}*/
+/*}*/
+/*QGroupBox::indicator {*/
+/*    width: 13px;*/
+/*    height: 13px;*/
+/*}*/

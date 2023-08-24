@@ -3,18 +3,20 @@ import interface as i
 
 from PyQt5.QtWidgets import QApplication
 
-app = QApplication(sys.argv)
 
-with open('styles.qss', 'r') as file:
-    app.setStyleSheet(file.read())
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
 
-# i.MagnetCFU.init_port()
-# i.MagnetCFU.write_port("A007*IDN?")
-# i.MagnetCFU.receive_data()
-# i.MagnetCFU.close_port()
+    with open('styles.qss', 'r') as file:
+        app.setStyleSheet(file.read())
 
-window = i.MagnetCFU()
-window.show()
+    # i.MagnetCFU.init_port()
+    # i.MagnetCFU.write_port("A007*IDN?")
+    # i.MagnetCFU.receive_data()
+    # i.MagnetCFU.close_port()
 
-app.exec()
+    window = i.MagnetCFU()
+    window.show()
+
+    app.exec()
 

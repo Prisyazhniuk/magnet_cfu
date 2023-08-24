@@ -2,11 +2,12 @@ import os
 # import magnetControl as mc
 import app_widgets as wid
 
-from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtGui import QIcon, QFont, QFontDatabase
 from PyQt5.QtWidgets import (
     QMainWindow,
+    QSizePolicy,
     QStatusBar,
     QPushButton,
     QVBoxLayout,
@@ -34,6 +35,7 @@ class MagnetCFU(QMainWindow):
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
         self.setWindowTitle("Magnet CFU")
         self.setContentsMargins(1, 1, 1, 1)
+        self.setFixedSize(450, 700)
 
         container    = QWidget()
         tabs         = QTabWidget()
@@ -58,7 +60,8 @@ class MagnetCFU(QMainWindow):
         baudrate = []
 
         self.setCentralWidget(container)
-        self.resize(400, 500)
+        # self.resize(400, 500)
+
 
     def hysteresisTabUI(self):
         hysteresis_tab = QWidget()
@@ -112,87 +115,95 @@ class MagnetCFU(QMainWindow):
 
     def ConfigureTabUI(self):
         configure_tab = QWidget()
+        widgets = wid.WidgetsForApp()
         layout = QVBoxLayout()
 
-        btn_port_open = QPushButton("Open")
-        btn_port_open.setCheckable(True)
-
-        cb_port_names = QComboBox()
-        cb_port_names.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
-        # for port in QSerialPortInfo().availablePorts():
-        #     cb_port_names.addItems([str(port)])
-
-        cb_baud_rates = QComboBox()
-        cb_baud_rates.addItems([
-            '110', '300', '600', '1200', '2400', '4800', '9600', '14400', '19200', '28800',
-            '31250', '38400', '51200', '56000', '57600', '76800', '115200', '128000', '230400', '256000', '921600'
-        ])
-
-        cb_data_bits = QComboBox()
-        cb_data_bits.addItems(['5 bit', '6 bit', '7 bit', '8 bit'])
-
-        _parity = QComboBox()
-        _parity.addItems(['No Parity', 'Even Parity', 'Odd Parity', 'Space Parity', 'Mark Parity'])
-
-        cb_stop_bits = QComboBox()
-        cb_stop_bits.addItems(['One Stop', 'One And Half Stop', 'Two Stop'])
-
-        _flowControl = QComboBox()
-        _flowControl.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
-
-        layout.addWidget(btn_port_open)
-        layout.addWidget(cb_port_names)
-        layout.addWidget(cb_baud_rates)
-        layout.addWidget(cb_data_bits)
-        layout.addWidget(_parity)
-        layout.addWidget(cb_stop_bits)
-        layout.addWidget(_flowControl)
+        layout.addWidget(widgets.btn_port_open)
+        layout.addWidget(widgets.cb_port_names)
+        layout.addWidget(widgets.cb_baud_rates)
+        layout.addWidget(widgets.cb_data_bits)
+        layout.addWidget(widgets.cb_parity)
+        layout.addWidget(widgets.cb_stop_bits)
+        layout.addWidget(widgets.cb_flowControl)
         configure_tab.setLayout(layout)
 
         return configure_tab
 
+    def serialControlEnable(self, flag):
+        widgets = wid.WidgetsForApp()
+        widgets.cb_port_names.setEnabled(flag)
+        widgets.cb_baud_rates.setEnabled(flag)
+        widgets.cb_data_bits.setEnabled(flag)
+        widgets.cb_parity.setEnabled(flag)
+        widgets.cb_stop_bits.setEnabled(flag)
+        widgets.cb_flowControl.setEnabled(flag)
 
-    def close_port(self):
-        self.serial_port.close()
+    def baudRate(self):
+        widgets = wid.WidgetsForApp()
+        return int(widgets.cb_baud_rates.currentText())
 
-    def receive_port(self):
-        data = self.serial_port.readAll()
-        self.serialData = data.data().decode('utf8')
+    def portName(self):
+        widgets = wid.WidgetsForApp()
+        return widgets.cb_port_names.currentText()
 
-        return self.serialData
+    def dataBit(self):
+        widgets = wid.WidgetsForApp()
+        return int(widgets.cb_data_bits.currentText() + 5)
 
-    def receive_data(self):
-        dataRead = self.serial_port.read(1).decode('utf8')
+    def parity(self):
+        widgets = wid.WidgetsForApp()
+        return widgets.cb_parity.currentIndex()
 
-        self.packet_received.emit(dataRead)
+    def stopBit(self):
+        widgets = wid.WidgetsForApp()
+        return widgets.cb_stop_bits.currentIndex()
 
-    def receive_multiple_data(self):
-        data = self.serial_port.readAll()
-
-        dataRead = data.data().decode('utf8')
-
-        self.packet_received.emit(dataRead)
-
-    def write_port(self, data):
-        self.serial_port.writeData(data.encode())
-
-    def write_port_list(self, data):
-        for value in data:
-            self.serial_port.writeData(value.encode())
+    def flowControl(self):
+        widgets = wid.WidgetsForApp()
+        return widgets.cb_flowControl.currentIndex()
 
 
-    def init_port(self):
-
-        portOpen = self.serialPort.open()
-
-        if portOpen:
-            self.serial_port.setBaudRate(QSerialPort.Baud115200)
-            self.serial_port.setDataBits(QSerialPort.Data8)
-            self.serial_port.setParity(QSerialPort.NoParity)
-            self.serial_port.setStopBits(QSerialPort.OneStop)
-            self.serial_port.setFlowControl(QSerialPort.NoFlowControl)
-
-            return True
-
-        else:
-            return False
+    # def close_port(self):
+    #     self.serial_port.close()
+    #
+    # def receive_port(self):
+    #     data = self.serial_port.readAll()
+    #     self.serialData = data.data().decode('utf8')
+    #
+    #     return self.serialData
+    #
+    # def receive_data(self):
+    #     dataRead = self.serial_port.read(1).decode('utf8')
+    #
+    #     self.packet_received.emit(dataRead)
+    #
+    # def receive_multiple_data(self):
+    #     data = self.serial_port.readAll()
+    #
+    #     dataRead = data.data().decode('utf8')
+    #
+    #     self.packet_received.emit(dataRead)
+    #
+    # def write_port(self, data):
+    #     self.serial_port.writeData(data.encode())
+    #
+    # def write_port_list(self, data):
+    #     for value in data:
+    #         self.serial_port.writeData(value.encode())
+    #
+    #
+    # def init_port(self):
+    #
+    #     portOpen = self.serialPort.open()
+    #
+    #     if portOpen:
+    #         self.serial_port.setBaudRate(QSerialPort.Baud115200)
+    #         self.serial_port.setDataBits(QSerialPort.Data8)
+    #         self.serial_port.setParity(QSerialPort.NoParity)
+    #         self.serial_port.setStopBits(QSerialPort.OneStop)
+    #         self.serial_port.setFlowControl(QSerialPort.NoFlowControl)
+    #
+    #         return True
+    #
+    #     else:
+    #         return False

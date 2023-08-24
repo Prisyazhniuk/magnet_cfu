@@ -1,6 +1,7 @@
-from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtSerialPort import QSerialPortInfo
 from PyQt5.QtWidgets import (
+    QApplication,
     QPushButton,
     QLabel,
     QLineEdit,
@@ -9,6 +10,7 @@ from PyQt5.QtWidgets import (
     QGroupBox,
     QSpinBox,
     QComboBox,
+    QVBoxLayout
 )
 
 
@@ -46,10 +48,36 @@ class WidgetsForApp(QWidget):
         self.btn_Open = QPushButton("&Open...")
         self.btn_Save = QPushButton("&Save")
 
+        # Config Tab
+        ###############################################################################################################
+        self.btn_port_open = QPushButton("Open")
+        self.btn_port_open.setCheckable(True)
+        self.cb_port_names = QComboBox()
+        self.cb_baud_rates = QComboBox()
+        self.cb_data_bits = QComboBox()
+        self.cb_parity = QComboBox()
+        self.cb_stop_bits = QComboBox()
+        self.cb_flowControl = QComboBox()
+
+        self.cb_port_names.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
+        self.cb_baud_rates.addItems([
+            '110', '300', '600', '1200', '2400', '4800', '9600', '14400', '19200', '28800',
+            '31250', '38400', '51200', '56000', '57600', '76800', '115200', '128000', '230400', '256000', '921600'
+        ])
+        self.cb_baud_rates.setCurrentText('115200')
+        self.cb_data_bits.addItems(['5 bit', '6 bit', '7 bit', '8 bit'])
+        self.cb_data_bits.setCurrentText('8 bit')
+        self.cb_parity.addItems(['No Parity', 'Even Parity', 'Odd Parity', 'Space Parity', 'Mark Parity'])
+        self.cb_stop_bits.addItems(['One Stop', 'One And Half Stop', 'Two Stop'])
+        self.cb_flowControl.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
+        ###############################################################################################################
+
+        # Group Box
         self.box_1 = QGroupBox("Info")
         self.box_2 = QGroupBox("Value")
         self.box_3 = QGroupBox("Control")
 
+        # Set parameters
         self.dsb_I_start.setRange(-7.5, 7.5)
         self.dsb_I_stop.setRange(-7.5, 7.5)
         self.dsb_I_start.setRange(-7.5, 7.5)
@@ -69,12 +97,14 @@ class WidgetsForApp(QWidget):
         self.le_Amper.setReadOnly(1)
         self.le_Resistance.setReadOnly(1)
 
-        self.le_Amper.setFixedWidth(55)
-        self.le_Volt.setFixedWidth(55)
+        self.le_Amper.setFixedWidth(70)
+        self.le_Volt.setFixedWidth(70)
+        self.le_Amper.setPlaceholderText("0.0 A")
+        self.le_Volt.setPlaceholderText("0.0 V")
 
-        self.dsb_Step.setFixedWidth(55)
-        self.dsb_I_start.setFixedWidth(55)
-        self.dsb_I_stop.setFixedWidth(55)
+        self.dsb_Step.setFixedWidth(60)
+        self.dsb_I_start.setFixedWidth(60)
+        self.dsb_I_stop.setFixedWidth(60)
 
         self.lbl_Resistance.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.dsb_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -92,13 +122,12 @@ class WidgetsForApp(QWidget):
         self.le_Volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.le_IDN.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
-        # self.lbl_COM.setFont(QFont('Arial', 8))
-        # self.lbl_Resistance.setFont(QFont('Arial', 8))
-
         self.cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
 
-        self.btn_IDN.clicked.connect(self.on_clicked_IDN)
 
-    def on_clicked_IDN(self):
-        self.btn_IDN.setDisabled(True)
-        self.btn_Stop.setEnabled(True)
+# if __name__ == "__main__":
+#     import sys
+#     app = QApplication(sys.argv)
+#     window = WidgetsForApp()
+#     window.show()
+#     sys.exit(app.exec())
