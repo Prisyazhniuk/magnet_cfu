@@ -1,21 +1,18 @@
 import os
+import app_widgets
 # import magnetControl as mc
-import app_widgets as wid
 
-from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal, QObject
+from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal, QIODevice
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtGui import QIcon, QFont, QFontDatabase
 from PyQt5.QtWidgets import (
     QMainWindow,
-    QSizePolicy,
     QStatusBar,
-    QPushButton,
     QVBoxLayout,
     QLabel,
     QWidget,
     QTabWidget,
-    QGridLayout,
-    QComboBox,
+    QGridLayout
 )
 
 
@@ -26,7 +23,7 @@ class MagnetCFU(QMainWindow):
 
         self.ports = []
         self.serial_data = ''
-        self.serial_port = QSerialPort()
+        self.port = QSerialPort()
         self.data_port_read = ''
 
 
@@ -71,7 +68,7 @@ class MagnetCFU(QMainWindow):
         middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
 
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
 
         top_layout.addWidget(widgets.lbl_COM,           0, 0)
         top_layout.addWidget(widgets.cb_COM,            0, 1)
@@ -115,7 +112,7 @@ class MagnetCFU(QMainWindow):
 
     def ConfigureTabUI(self):
         configure_tab = QWidget()
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         layout = QVBoxLayout()
 
         layout.addWidget(widgets.btn_port_open)
@@ -129,8 +126,33 @@ class MagnetCFU(QMainWindow):
 
         return configure_tab
 
+    def portOpen(self, flag):
+        widgets = app_widgets.WidgetsForApp()
+        if flag:
+            self.port.setBaudRate(widgets.cb_baud_rates())
+            self.port.setPortName(widgets.cb_port_names())
+            self.port.setDataBits(widgets.cb_data_bits())
+            self.port.setParity(widgets.cb_parity())
+            self.port.setStopBits(widgets.cb_stop_bits())
+            self.port.setFlowControl(widgets.cb_flowControl())
+            r = self.port.open(QIODevice.ReadWrite)
+            if not r:
+                self.status_text.setText("Port open error")
+                widgets.btn_port_open.setCheckable(False)
+                self.serialControlEnable(True)
+            else:
+                self.status_text.setText("Port opened")
+                self.serialControlEnable(False)
+        else:
+            self.port.close()
+            self.status_text.setText("Port closed")
+            self.serialControlEnable(True)
+
+    # def SerialDataView(self):
+
+
     def serialControlEnable(self, flag):
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         widgets.cb_port_names.setEnabled(flag)
         widgets.cb_baud_rates.setEnabled(flag)
         widgets.cb_data_bits.setEnabled(flag)
@@ -139,27 +161,27 @@ class MagnetCFU(QMainWindow):
         widgets.cb_flowControl.setEnabled(flag)
 
     def baudRate(self):
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         return int(widgets.cb_baud_rates.currentText())
 
     def portName(self):
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         return widgets.cb_port_names.currentText()
 
     def dataBit(self):
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         return int(widgets.cb_data_bits.currentText() + 5)
 
     def parity(self):
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         return widgets.cb_parity.currentIndex()
 
     def stopBit(self):
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         return widgets.cb_stop_bits.currentIndex()
 
     def flowControl(self):
-        widgets = wid.WidgetsForApp()
+        widgets = app_widgets.WidgetsForApp()
         return widgets.cb_flowControl.currentIndex()
 
 

@@ -9,15 +9,13 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QGroupBox,
     QSpinBox,
-    QComboBox,
-    QVBoxLayout
+    QComboBox
 )
 
 
 class WidgetsForApp(QWidget):
     def __init__(self, parent=None):
         QWidget.__init__(self, parent)
-
 
         self.lbl_COM = QLabel("COM")
         self.lbl_I_start = QLabel("I start")
@@ -38,8 +36,6 @@ class WidgetsForApp(QWidget):
         self.le_Amper = QLineEdit()
         self.cb_COM = QComboBox()
 
-            # dsb_I_start.valueChanged.connect(lambda: a)
-
         self.btn_IDN = QPushButton("&IDN")
         self.btn_Start = QPushButton("&Set Current")
         self.btn_Stop = QPushButton("&Stop")
@@ -49,7 +45,6 @@ class WidgetsForApp(QWidget):
         self.btn_Save = QPushButton("&Save")
 
         # Config Tab
-        ###############################################################################################################
         self.btn_port_open = QPushButton("Open")
         self.btn_port_open.setCheckable(True)
         self.cb_port_names = QComboBox()
@@ -70,7 +65,6 @@ class WidgetsForApp(QWidget):
         self.cb_parity.addItems(['No Parity', 'Even Parity', 'Odd Parity', 'Space Parity', 'Mark Parity'])
         self.cb_stop_bits.addItems(['One Stop', 'One And Half Stop', 'Two Stop'])
         self.cb_flowControl.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
-        ###############################################################################################################
 
         # Group Box
         self.box_1 = QGroupBox("Info")
