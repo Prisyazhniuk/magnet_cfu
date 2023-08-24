@@ -1,17 +1,39 @@
 from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtSerialPort import QSerialPortInfo
 from PyQt5.QtWidgets import (
+    QMainWindow,
     QApplication,
     QPushButton,
+    QSizePolicy,
     QLabel,
     QLineEdit,
     QWidget,
     QDoubleSpinBox,
     QGroupBox,
     QSpinBox,
-    QComboBox
+    QComboBox,
+    QTextEdit,
+    QVBoxLayout
 )
 
+
+class HexWindow(QMainWindow):
+    def __init__(self, parent=None):
+        super(HexWindow, self).__init__(parent)
+
+        widgets = WidgetsForApp()
+        layout = QVBoxLayout()
+        container = QWidget()
+        self.Line = QLineEdit("Some Text")
+        self.lbl = QLabel('00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F')
+
+        layout.addWidget(self.lbl)
+        layout.addWidget(self.Line)
+        container.setLayout(layout)
+
+        self.setWindowTitle("Hex Code")
+        self.setCentralWidget(container)
+        self.resize(400, 400)
 
 class WidgetsForApp(QWidget):
     def __init__(self, parent=None):
@@ -47,12 +69,15 @@ class WidgetsForApp(QWidget):
         # Config Tab
         self.btn_port_open = QPushButton("Open")
         self.btn_port_open.setCheckable(True)
+        self.btn_open_serial_data = QPushButton("Open Serial data")
+
         self.cb_port_names = QComboBox()
         self.cb_baud_rates = QComboBox()
         self.cb_data_bits = QComboBox()
         self.cb_parity = QComboBox()
         self.cb_stop_bits = QComboBox()
         self.cb_flowControl = QComboBox()
+
 
         self.cb_port_names.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
         self.cb_baud_rates.addItems([
@@ -70,6 +95,11 @@ class WidgetsForApp(QWidget):
         self.box_1 = QGroupBox("Info")
         self.box_2 = QGroupBox("Value")
         self.box_3 = QGroupBox("Control")
+
+        # Data View parameters
+        self.serial_data = QLineEdit()
+        self.serial_data.setReadOnly(1)
+        # self.serial_data.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         # Set parameters
         self.dsb_I_start.setRange(-7.5, 7.5)

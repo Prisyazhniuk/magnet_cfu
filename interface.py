@@ -20,6 +20,8 @@ class MagnetCFU(QMainWindow):
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
 
+        widgets = app_widgets.WidgetsForApp()
+
 
         self.ports = []
         self.serial_data = ''
@@ -122,6 +124,10 @@ class MagnetCFU(QMainWindow):
         layout.addWidget(widgets.cb_parity)
         layout.addWidget(widgets.cb_stop_bits)
         layout.addWidget(widgets.cb_flowControl)
+        layout.addWidget(widgets.btn_open_serial_data)
+
+        widgets.btn_open_serial_data.clicked.connect(self.on_clicked_btn_open_serial_data)
+
         configure_tab.setLayout(layout)
 
         return configure_tab
@@ -147,8 +153,6 @@ class MagnetCFU(QMainWindow):
             self.port.close()
             self.status_text.setText("Port closed")
             self.serialControlEnable(True)
-
-    # def SerialDataView(self):
 
 
     def serialControlEnable(self, flag):
@@ -229,3 +233,18 @@ class MagnetCFU(QMainWindow):
     #
     #     else:
     #         return False
+
+    # def SerialDataIDN(self):
+    #     widgets = app_widgets.WidgetsForApp()
+    #
+    #
+
+
+    def on_clicked_btn_open_serial_data(self):
+        self.window = app_widgets.HexWindow()
+        self.window.show()
+
+    # def appendSerialText(self, appendText):
+    #     widgets = app_widgets.WidgetsForApp()
+    #     widgets.serial_data.setText(appendText)
+    #     Text = appendText.encode()
