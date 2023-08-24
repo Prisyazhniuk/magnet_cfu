@@ -28,8 +28,6 @@ class MagnetCFU(QMainWindow):
         self.port = QSerialPort()
         self.data_port_read = ''
 
-
-
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
         self.setWindowTitle("Magnet CFU")
@@ -75,30 +73,38 @@ class MagnetCFU(QMainWindow):
         top_layout.addWidget(widgets.lbl_COM,           0, 0)
         top_layout.addWidget(widgets.cb_COM,            0, 1)
         top_layout.addWidget(widgets.btn_IDN,           1, 0)
-        top_layout.addWidget(widgets.lbl_Resistance,    2, 0)
         top_layout.addWidget(widgets.le_IDN,            1, 1)
-        top_layout.addWidget(widgets.le_Resistance,     2, 1)
 
         middle_layout.addWidget(widgets.lbl_I_start,    0, 0)
         middle_layout.addWidget(widgets.lbl_I_stop,     2, 0)
-        middle_layout.addWidget(widgets.lbl_Volt,       2, 2)
-        middle_layout.addWidget(widgets.lbl_Amper,      0, 2)
-        middle_layout.addWidget(widgets.lbl_Step,       0, 1)
-        middle_layout.addWidget(widgets.lbl_Loops,      2, 1)
+        middle_layout.addWidget(widgets.lbl_volt,       2, 2)
+        middle_layout.addWidget(widgets.lbl_amper,      0, 2)
+        middle_layout.addWidget(widgets.lbl_step,       0, 1)
+        middle_layout.addWidget(widgets.lbl_loops,      2, 1)
+        middle_layout.addWidget(widgets.le_resistance,  1, 3)
+        middle_layout.addWidget(widgets.lbl_resistance, 0, 3)
 
         middle_layout.addWidget(widgets.dsb_I_start,    1, 0)
         middle_layout.addWidget(widgets.dsb_I_stop,     3, 0)
-        middle_layout.addWidget(widgets.dsb_Step,       1, 1)
-        middle_layout.addWidget(widgets.sb_Loops,       3, 1)
-        middle_layout.addWidget(widgets.le_Amper,       1, 2)
-        middle_layout.addWidget(widgets.le_Volt,        3, 2)
+        middle_layout.addWidget(widgets.dsb_step,       1, 1)
+        middle_layout.addWidget(widgets.sb_loops,       3, 1)
+        middle_layout.addWidget(widgets.le_amper,       1, 2)
+        middle_layout.addWidget(widgets.le_volt,        3, 2)
 
-        bottom_layout.addWidget(widgets.btn_Start,      0, 0)
-        bottom_layout.addWidget(widgets.btn_Stop,       0, 1)
-        bottom_layout.addWidget(widgets.btn_Reset,      1, 0)
-        bottom_layout.addWidget(widgets.btn_Start_Meas, 1, 1)
-        bottom_layout.addWidget(widgets.btn_Open,       2, 0)
-        bottom_layout.addWidget(widgets.btn_Save,       2, 1)
+        bottom_layout.addWidget(widgets.btn_start,      0, 0)
+        bottom_layout.addWidget(widgets.btn_stop,       0, 1)
+        bottom_layout.addWidget(widgets.btn_reset,      1, 0)
+        bottom_layout.addWidget(widgets.btn_start_meas, 1, 1)
+        bottom_layout.addWidget(widgets.btn_open,       2, 0)
+        bottom_layout.addWidget(widgets.btn_save,       2, 1)
+
+        widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
+        widgets.btn_start.clicked.connect(self.on_clicked_btn_start)
+        widgets.btn_stop.clicked.connect(self.on_clicked_btn_stop)
+        widgets.btn_reset.clicked.connect(self.on_clicked_btn_reset)
+        widgets.btn_start_meas.clicked.connect(self.on_clicked_btn_start_meas)
+        widgets.btn_open.clicked.connect(self.on_clicked_btn_open)
+        widgets.btn_save.clicked.connect(self.on_clicked_btn_save)
 
 
         widgets.box_1.setLayout(top_layout)
@@ -123,7 +129,7 @@ class MagnetCFU(QMainWindow):
         layout.addWidget(widgets.cb_data_bits)
         layout.addWidget(widgets.cb_parity)
         layout.addWidget(widgets.cb_stop_bits)
-        layout.addWidget(widgets.cb_flowControl)
+        layout.addWidget(widgets.cb_flow_control)
         layout.addWidget(widgets.btn_open_serial_data)
 
         widgets.btn_open_serial_data.clicked.connect(self.on_clicked_btn_open_serial_data)
@@ -140,7 +146,7 @@ class MagnetCFU(QMainWindow):
             self.port.setDataBits(widgets.cb_data_bits())
             self.port.setParity(widgets.cb_parity())
             self.port.setStopBits(widgets.cb_stop_bits())
-            self.port.setFlowControl(widgets.cb_flowControl())
+            self.port.setFlowControl(widgets.cb_flow_control())
             r = self.port.open(QIODevice.ReadWrite)
             if not r:
                 self.status_text.setText("Port open error")
@@ -157,12 +163,13 @@ class MagnetCFU(QMainWindow):
 
     def serialControlEnable(self, flag):
         widgets = app_widgets.WidgetsForApp()
+
         widgets.cb_port_names.setEnabled(flag)
         widgets.cb_baud_rates.setEnabled(flag)
         widgets.cb_data_bits.setEnabled(flag)
         widgets.cb_parity.setEnabled(flag)
         widgets.cb_stop_bits.setEnabled(flag)
-        widgets.cb_flowControl.setEnabled(flag)
+        widgets.cb_flow_control.setEnabled(flag)
 
     def baudRate(self):
         widgets = app_widgets.WidgetsForApp()
@@ -186,58 +193,41 @@ class MagnetCFU(QMainWindow):
 
     def flowControl(self):
         widgets = app_widgets.WidgetsForApp()
-        return widgets.cb_flowControl.currentIndex()
+        return widgets.cb_flow_control.currentIndex()
+
+    def close_port(self):
+        self.port.close()
+
+    def receive_port(self):
+        data = self.port.readAll()
+        self.serial_data = data.data().decode('utf8')
+
+        return self.serial_data
+
+    def write_port(self, data):
+        self.port.writeData(data.encode())
+
+    def write_port_list(self, data):
+        for value in data:
+            self.port.writeData(value.encode())
 
 
-    # def close_port(self):
-    #     self.serial_port.close()
-    #
-    # def receive_port(self):
-    #     data = self.serial_port.readAll()
-    #     self.serialData = data.data().decode('utf8')
-    #
-    #     return self.serialData
-    #
-    # def receive_data(self):
-    #     dataRead = self.serial_port.read(1).decode('utf8')
-    #
-    #     self.packet_received.emit(dataRead)
-    #
-    # def receive_multiple_data(self):
-    #     data = self.serial_port.readAll()
-    #
-    #     dataRead = data.data().decode('utf8')
-    #
-    #     self.packet_received.emit(dataRead)
-    #
-    # def write_port(self, data):
-    #     self.serial_port.writeData(data.encode())
-    #
-    # def write_port_list(self, data):
-    #     for value in data:
-    #         self.serial_port.writeData(value.encode())
-    #
-    #
-    # def init_port(self):
-    #
-    #     portOpen = self.serialPort.open()
-    #
-    #     if portOpen:
-    #         self.serial_port.setBaudRate(QSerialPort.Baud115200)
-    #         self.serial_port.setDataBits(QSerialPort.Data8)
-    #         self.serial_port.setParity(QSerialPort.NoParity)
-    #         self.serial_port.setStopBits(QSerialPort.OneStop)
-    #         self.serial_port.setFlowControl(QSerialPort.NoFlowControl)
-    #
-    #         return True
-    #
-    #     else:
-    #         return False
+    def init_port(self):
 
-    # def SerialDataIDN(self):
-    #     widgets = app_widgets.WidgetsForApp()
-    #
-    #
+        portOpen = self.port.open()
+
+        if portOpen:
+            self.port.setBaudRate(self.baudRate())
+            self.port.setDataBits(QSerialPort.Data8)
+            self.port.setParity(QSerialPort.NoParity)
+            self.port.setStopBits(QSerialPort.OneStop)
+            self.port.setFlowControl(QSerialPort.NoFlowControl)
+
+            return True
+
+        else:
+            return False
+
 
 
     def on_clicked_btn_open_serial_data(self):
@@ -248,3 +238,24 @@ class MagnetCFU(QMainWindow):
     #     widgets = app_widgets.WidgetsForApp()
     #     widgets.serial_data.setText(appendText)
     #     Text = appendText.encode()
+
+    def on_clicked_btn_IDN(self):
+        self.status_text.setText(" Error connection to COM-port")
+
+    def on_clicked_btn_start(self):
+        pass
+
+    def on_clicked_btn_stop(self):
+        pass
+
+    def on_clicked_btn_reset(self):
+        pass
+
+    def on_clicked_btn_start_meas(self):
+        pass
+
+    def on_clicked_btn_open(self):
+        pass
+
+    def on_clicked_btn_save(self):
+        print()
