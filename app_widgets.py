@@ -58,22 +58,43 @@ class WidgetsForApp(QWidget):
 
         self.dsb_I_start = QDoubleSpinBox()
         self.dsb_I_start.setSuffix(" A")
+        self.dsb_I_start.setRange(-7.5, 7.5)
+        self.dsb_I_start.setFixedWidth(70)
         self.dsb_I_stop = QDoubleSpinBox()
         self.dsb_I_stop.setSuffix(" A")
+        self.dsb_I_stop.setRange(-7.5, 7.5)
+        self.dsb_I_stop.setFixedWidth(70)
         self.dsb_step = QDoubleSpinBox()
         self.dsb_step.setSuffix(" A")
+        self.dsb_step.setRange(0.01, 0.05)
+        self.dsb_step.setFixedWidth(70)
         self.sb_loops = QSpinBox()
+        self.sb_loops.setValue(1)
         self.le_IDN = QLineEdit()
+        self.le_IDN.setReadOnly(1)
         self.le_resistance = QLineEdit()
+        self.le_resistance.setReadOnly(1)
         self.le_volt = QLineEdit()
+        self.le_volt.setReadOnly(1)
+        self.le_volt.setFixedWidth(70)
+        self.le_volt.setPlaceholderText("0.0 V")
         self.le_amper = QLineEdit()
+        self.le_amper.setReadOnly(1)
+        self.le_amper.setFixedWidth(70)
+        self.le_amper.setPlaceholderText("0.0 A")
         self.cb_COM = QComboBox()
+        self.cb_COM.setFixedWidth(90)
 
         self.btn_IDN = QPushButton("&IDN")
+        self.btn_IDN.setCheckable(1)
+        self.btn_IDN.setFixedWidth(70)
         self.btn_start = QPushButton("&Set Current")
+        self.btn_start.setCheckable(1)
         self.btn_stop = QPushButton("&Stop")
         self.btn_reset = QPushButton("Reset")
+        self.btn_reset.setCheckable(1)
         self.btn_start_meas = QPushButton("&Start Measurment")
+        self.btn_start_meas.setCheckable(1)
         self.btn_open = QPushButton("&Open...")
         self.btn_save = QPushButton("&Save")
 
@@ -88,7 +109,6 @@ class WidgetsForApp(QWidget):
         self.cb_parity = QComboBox()
         self.cb_stop_bits = QComboBox()
         self.cb_flow_control = QComboBox()
-
 
         self.cb_port_names.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
         self.cb_baud_rates.addItems([
@@ -112,34 +132,7 @@ class WidgetsForApp(QWidget):
         self.serial_data.setReadOnly(1)
         # self.serial_data.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
-        # Set parameters
-        self.dsb_I_start.setRange(-7.5, 7.5)
-        self.dsb_I_stop.setRange(-7.5, 7.5)
-        self.dsb_I_start.setRange(-7.5, 7.5)
-        self.dsb_I_stop.setRange(-7.5, 7.5)
-        self.dsb_step.setRange(0.01, 0.05)
-        self.cb_COM.setFixedWidth(90)
-        self.sb_loops.setValue(1)
-
-        self.btn_start_meas.setCheckable(1)
-        self.btn_reset.setCheckable(1)
-        self.btn_start.setCheckable(1)
-        self.btn_IDN.setCheckable(1)
-
-        self.le_IDN.setReadOnly(1)
-        self.le_volt.setReadOnly(1)
-        self.le_amper.setReadOnly(1)
-        self.le_resistance.setReadOnly(1)
-
-        self.le_amper.setFixedWidth(70)
-        self.le_volt.setFixedWidth(70)
-        self.le_amper.setPlaceholderText("0.0 A")
-        self.le_volt.setPlaceholderText("0.0 V")
-
-        self.dsb_step.setFixedWidth(70)
-        self.dsb_I_start.setFixedWidth(70)
-        self.dsb_I_stop.setFixedWidth(70)
-
+        # Set Alignment
         self.lbl_resistance.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.dsb_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.lbl_I_start.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -156,6 +149,7 @@ class WidgetsForApp(QWidget):
         self.le_volt.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.le_IDN.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
+        # Connect all serial port to comboBox "COM in Hysteresis tab"
         self.cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
 
 
