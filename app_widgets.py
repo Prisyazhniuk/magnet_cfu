@@ -25,9 +25,9 @@ class CustomDoubleSpinbox(QDoubleSpinBox):
         text = text.replace(",", ".")
         return float(text)
 
-class HexWindow(QMainWindow):
+class newWindow(QMainWindow):
     def __init__(self, parent=None):
-        super(HexWindow, self).__init__(parent)
+        super(newWindow, self).__init__(parent)
 
         widgets = WidgetsForApp()
         layout = QVBoxLayout()
@@ -93,7 +93,7 @@ class WidgetsForApp(QWidget):
         self.btn_stop = QPushButton("&Stop")
         self.btn_reset = QPushButton("Reset")
         self.btn_reset.setCheckable(1)
-        self.btn_start_meas = QPushButton("&Start Measurment")
+        self.btn_start_meas = QPushButton("&Start Measurement")
         self.btn_start_meas.setCheckable(1)
         self.btn_open = QPushButton("&Open...")
         self.btn_save = QPushButton("&Save")
@@ -117,10 +117,13 @@ class WidgetsForApp(QWidget):
         ])
         self.cb_baud_rates.setCurrentText('115200')
         self.cb_data_bits.addItems(['5 bit', '6 bit', '7 bit', '8 bit'])
-        self.cb_data_bits.setCurrentText('8 bit')
+        self.cb_data_bits.setCurrentIndex(3)
         self.cb_parity.addItems(['No Parity', 'Even Parity', 'Odd Parity', 'Space Parity', 'Mark Parity'])
+        self.cb_parity.setCurrentIndex(0)
         self.cb_stop_bits.addItems(['One Stop', 'One And Half Stop', 'Two Stop'])
+        self.cb_stop_bits.setCurrentIndex(0)
         self.cb_flow_control.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
+        self.cb_flow_control.setCurrentIndex(0)
 
         # Group Box
         self.box_1 = QGroupBox("Info")
@@ -151,6 +154,8 @@ class WidgetsForApp(QWidget):
 
         # Connect all serial port to comboBox "COM in Hysteresis tab"
         self.cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
+        if self.cb_COM.count() == 0:
+            self.cb_COM.addItem("no ports")
 
 
 # if __name__ == "__main__":

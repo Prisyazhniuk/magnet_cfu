@@ -54,11 +54,7 @@ class MagnetCFU(QMainWindow):
         outerLayout.addLayout(bottomLayout)
         container.setLayout(outerLayout)
 
-        baudrate = []
-
         self.setCentralWidget(container)
-        # self.resize(400, 500)
-
 
     def hysteresisTabUI(self):
         hysteresis_tab = QWidget()
@@ -98,6 +94,7 @@ class MagnetCFU(QMainWindow):
         bottom_layout.addWidget(widgets.btn_open,       2, 0)
         bottom_layout.addWidget(widgets.btn_save,       2, 1)
 
+        # widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
         widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
         widgets.btn_start.clicked.connect(self.on_clicked_btn_start)
         widgets.btn_stop.clicked.connect(self.on_clicked_btn_stop)
@@ -105,7 +102,6 @@ class MagnetCFU(QMainWindow):
         widgets.btn_start_meas.clicked.connect(self.on_clicked_btn_start_meas)
         widgets.btn_open.clicked.connect(self.on_clicked_btn_open)
         widgets.btn_save.clicked.connect(self.on_clicked_btn_save)
-
 
         widgets.box_1.setLayout(top_layout)
         widgets.box_2.setLayout(middle_layout)
@@ -138,7 +134,7 @@ class MagnetCFU(QMainWindow):
 
         return configure_tab
 
-    def portOpen(self, flag):
+    def port_write(self, flag):
         widgets = app_widgets.WidgetsForApp()
         if flag:
             self.port.setBaudRate(widgets.cb_baud_rates())
@@ -181,7 +177,7 @@ class MagnetCFU(QMainWindow):
 
     def dataBit(self):
         widgets = app_widgets.WidgetsForApp()
-        return int(widgets.cb_data_bits.currentText() + 5)
+        return int(widgets.cb_data_bits.currentIndex() + 5)
 
     def parity(self):
         widgets = app_widgets.WidgetsForApp()
@@ -189,7 +185,9 @@ class MagnetCFU(QMainWindow):
 
     def stopBit(self):
         widgets = app_widgets.WidgetsForApp()
-        return widgets.cb_stop_bits.currentIndex()
+        a = 'text'
+        return a
+        # return widgets.cb_stop_bits.currentIndex()
 
     def flowControl(self):
         widgets = app_widgets.WidgetsForApp()
@@ -231,7 +229,7 @@ class MagnetCFU(QMainWindow):
 
 
     def on_clicked_btn_open_serial_data(self):
-        self.window = app_widgets.HexWindow()
+        self.window = app_widgets.newWindow()
         self.window.show()
 
     # def appendSerialText(self, appendText):
@@ -240,7 +238,28 @@ class MagnetCFU(QMainWindow):
     #     Text = appendText.encode()
 
     def on_clicked_btn_IDN(self):
-        self.status_text.setText(" Error connection to COM-port")
+        if not QSerialPortInfo.availablePorts():
+            self.status_text.setText("no ports")
+        # widgets = app_widgets.WidgetsForApp()
+        # if flag:
+        #     self.port.setPortName(self.portName())
+        #     self.port.setBaudRate(self.baudRate())
+        #     self.port.setDataBits(self.dataBit())
+        #     self.port.setParity(self.parity())
+        #     self.port.setFlowControl(self.flowControl())
+        #     self.port.setDataBits(self.dataBit())
+        #     ready = self.port.open(QIODevice.ReadWrite)
+        #     if not ready:
+        #         self.status_text.setText('Send Error')
+        #         widgets.btn_IDN.setChecked(False)
+        #         self.serialControlEnable(True)
+        #     else:
+        #         self.status_text.setText('Data sent')
+        #         self.serialControlEnable(False)
+        # else:
+        #     self.port.close()
+        #     self.status_text.setText('Port closed')
+        #     self.serialControlEnable(True)
 
     def on_clicked_btn_start(self):
         pass
