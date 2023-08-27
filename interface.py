@@ -9,12 +9,13 @@ from PyQt5.QtWidgets import (
     QMainWindow,
     QStatusBar,
     QVBoxLayout,
+    QHBoxLayout,
+    QFormLayout,
     QLabel,
     QWidget,
     QTabWidget,
     QGridLayout
 )
-
 
 class MagnetCFU(QMainWindow):
     def __init__(self, parent=None):
@@ -32,7 +33,7 @@ class MagnetCFU(QMainWindow):
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
         self.setWindowTitle("Magnet CFU")
         self.setContentsMargins(1, 1, 1, 1)
-        self.setFixedSize(450, 700)
+        #self.setFixedSize(450, 700)
 
         container    = QWidget()
         tabs         = QTabWidget()
@@ -58,34 +59,38 @@ class MagnetCFU(QMainWindow):
 
     def hysteresisTabUI(self):
         hysteresis_tab = QWidget()
+        widgets = app_widgets.WidgetsForApp()
 
         outer_layout   = QVBoxLayout()
+        v_outer_layout = QVBoxLayout()
+        h_outer_layout = QHBoxLayout()
+
+        hyst_layout    = QVBoxLayout()
         top_layout     = QGridLayout()
         middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
 
-        widgets = app_widgets.WidgetsForApp()
-
-        top_layout.addWidget(widgets.lbl_COM,           0, 0)
+        top_layout.addWidget(widgets.lbl_COM,           0, 0, Qt.AlignCenter)
         top_layout.addWidget(widgets.cb_COM,            0, 1)
         top_layout.addWidget(widgets.btn_IDN,           1, 0)
         top_layout.addWidget(widgets.le_IDN,            1, 1)
 
-        middle_layout.addWidget(widgets.lbl_I_start,    0, 0)
-        middle_layout.addWidget(widgets.lbl_I_stop,     2, 0)
-        middle_layout.addWidget(widgets.lbl_volt,       2, 2)
-        middle_layout.addWidget(widgets.lbl_amper,      0, 2)
-        middle_layout.addWidget(widgets.lbl_step,       0, 1)
-        middle_layout.addWidget(widgets.lbl_loops,      2, 1)
-        middle_layout.addWidget(widgets.le_resistance,  1, 3)
-        middle_layout.addWidget(widgets.lbl_resistance, 0, 3)
+        middle_layout.addWidget(widgets.lbl_I_start,    2, 1, Qt.AlignCenter)
+        middle_layout.addWidget(widgets.lbl_I_stop,     0, 1, Qt.AlignCenter)
+        middle_layout.addWidget(widgets.lbl_volt,       2, 2, Qt.AlignCenter)
+        middle_layout.addWidget(widgets.lbl_amper,      0, 2, Qt.AlignCenter)
+        middle_layout.addWidget(widgets.lbl_step,       2, 0, Qt.AlignCenter)
+        middle_layout.addWidget(widgets.lbl_loops,      0, 0, Qt.AlignCenter)
+        middle_layout.addWidget(widgets.lbl_resistance, 0, 3, Qt.AlignCenter)
 
-        middle_layout.addWidget(widgets.dsb_I_start,    1, 0)
-        middle_layout.addWidget(widgets.dsb_I_stop,     3, 0)
-        middle_layout.addWidget(widgets.dsb_step,       1, 1)
-        middle_layout.addWidget(widgets.sb_loops,       3, 1)
         middle_layout.addWidget(widgets.le_amper,       1, 2)
         middle_layout.addWidget(widgets.le_volt,        3, 2)
+        middle_layout.addWidget(widgets.le_resistance,  1, 3)
+
+        middle_layout.addWidget(widgets.dsb_I_start,    3, 1)
+        middle_layout.addWidget(widgets.dsb_I_stop,     1, 1)
+        middle_layout.addWidget(widgets.dsb_step,       3, 0)
+        middle_layout.addWidget(widgets.sb_loops,       1, 0, Qt.AlignCenter)
 
         bottom_layout.addWidget(widgets.btn_start,      0, 0)
         bottom_layout.addWidget(widgets.btn_stop,       0, 1)
@@ -94,6 +99,8 @@ class MagnetCFU(QMainWindow):
         bottom_layout.addWidget(widgets.btn_open,       2, 0)
         bottom_layout.addWidget(widgets.btn_save,       2, 1)
 
+        hyst_layout.addWidget(widgets.hysteresis)
+
         # widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
         widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
         widgets.btn_start.clicked.connect(self.on_clicked_btn_start)
@@ -101,15 +108,21 @@ class MagnetCFU(QMainWindow):
         widgets.btn_reset.clicked.connect(self.on_clicked_btn_reset)
         widgets.btn_start_meas.clicked.connect(self.on_clicked_btn_start_meas)
         widgets.btn_open.clicked.connect(self.on_clicked_btn_open)
-        widgets.btn_save.clicked.connect(self.on_clicked_btn_save)
+        #widgets.btn_save.clicked.connect(self.on_clicked_btn_save)
 
         widgets.box_1.setLayout(top_layout)
         widgets.box_2.setLayout(middle_layout)
         widgets.box_3.setLayout(bottom_layout)
+        widgets.box_4.setLayout(hyst_layout)
 
-        outer_layout.addWidget(widgets.box_1)
-        outer_layout.addWidget(widgets.box_2)
-        outer_layout.addWidget(widgets.box_3)
+        h_outer_layout.addLayout(v_outer_layout)
+
+        v_outer_layout.addWidget(widgets.box_1)
+        v_outer_layout.addWidget(widgets.box_2)
+        v_outer_layout.addWidget(widgets.box_3)
+        h_outer_layout.addWidget(widgets.box_4)
+        outer_layout.addLayout(v_outer_layout)
+        outer_layout.addLayout(h_outer_layout)
 
         hysteresis_tab.setLayout(outer_layout)
         return hysteresis_tab
@@ -238,9 +251,11 @@ class MagnetCFU(QMainWindow):
     #     Text = appendText.encode()
 
     def on_clicked_btn_IDN(self):
+        widgets = app_widgets.WidgetsForApp()
         if not QSerialPortInfo.availablePorts():
-            self.status_text.setText("no ports")
-        # widgets = app_widgets.WidgetsForApp()
+            self.status_text.setText(" no ports ")
+            widgets.btn_save.setCheckable(True)
+
         # if flag:
         #     self.port.setPortName(self.portName())
         #     self.port.setBaudRate(self.baudRate())
@@ -276,5 +291,5 @@ class MagnetCFU(QMainWindow):
     def on_clicked_btn_open(self):
         pass
 
-    def on_clicked_btn_save(self):
-        print()
+    # def on_clicked_btn_save(self):
+    #     print()
