@@ -1,6 +1,7 @@
 import os
 import app_widgets
 # import magnetControl as mc
+import pyqtgraph as pg
 
 from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal, QIODevice
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
@@ -28,6 +29,13 @@ class MagnetCFU(QMainWindow):
         self.serial_data = ''
         self.port = QSerialPort()
         self.data_port_read = ''
+
+        # y = [2, 8, 6, 8, 6, 11, 14, 13, 18, 19]
+        # x = range(0, 10)
+        # plt = pg.plot()
+        # plt.addLegend()
+
+
 
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
@@ -70,6 +78,9 @@ class MagnetCFU(QMainWindow):
         middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
 
+        # temp_layout = QVBoxLayout()
+        # temp_layout.addWidget(widgets.plotWidget)
+
         top_layout.addWidget(widgets.lbl_COM,           0, 0, Qt.AlignCenter)
         top_layout.addWidget(widgets.cb_COM,            0, 1)
         top_layout.addWidget(widgets.btn_IDN,           1, 0)
@@ -99,6 +110,7 @@ class MagnetCFU(QMainWindow):
         bottom_layout.addWidget(widgets.btn_open,       2, 0)
         bottom_layout.addWidget(widgets.btn_save,       2, 1)
 
+        # widgets.hysteresis.setLayout(temp_layout)
         hyst_layout.addWidget(widgets.hysteresis)
 
         # widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
@@ -293,3 +305,4 @@ class MagnetCFU(QMainWindow):
 
     # def on_clicked_btn_save(self):
     #     print()
+

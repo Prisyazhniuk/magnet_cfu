@@ -1,5 +1,7 @@
+import sys
 import pyqtgraph as pg
 from pyqtgraph import PlotWidget
+# from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtSerialPort import QSerialPortInfo
 from PyQt5.QtWidgets import (
@@ -20,7 +22,11 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QGraphicsWidget
 )
-
+# class Ui(QMainWindow):
+#     def __init__(self):
+#         super(Ui, self).__init__() # Call the inherited classes __init__ method
+#         uic.loadUi('basic.ui', self) # Load the .ui file
+#         self.show() # Show the GUI
 class CustomDoubleSpinbox(QDoubleSpinBox):
     def validate(self, text: str, pos: int) -> object:
         text = text.replace(".", ",")
@@ -55,6 +61,12 @@ class WidgetsForApp(QWidget):
 
         self.hysteresis.setFixedSize(500, 300)
 
+        # self.plotWidget = pg.PlotWidget(self)
+        # self.plotWidget.plot([1, 2, 3, 4])
+        # self.plotWidget.scene().sigMouseClicked.connect(self.onMouseClicked)
+        # plt.addLegend()
+        # self.c2 = plt.plot([2, 1, 4, 3], pen='b', fillLevel=0, fillBrush=(255, 255, 255, 30), name='Blue Plot')
+
         self.lbl_COM = QLabel("COM")
         self.lbl_I_start = QLabel("I start")
         self.lbl_I_stop = QLabel("I stop")
@@ -83,6 +95,7 @@ class WidgetsForApp(QWidget):
         self.sb_loops.setFixedSize(45, 35)
         self.le_IDN = QLineEdit()
         self.le_IDN.setReadOnly(1)
+        self.le_IDN.setFixedHeight(26)
         self.le_resistance = QLineEdit()
         self.le_resistance.setDisabled(True)
         self.le_resistance.setFixedSize(120, 35)
