@@ -1,7 +1,7 @@
 import sys
 import pyqtgraph as pg
 from pyqtgraph import PlotWidget
-# from PyQt5 import uic
+# # from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtSerialPort import QSerialPortInfo
 from PyQt5.QtWidgets import (

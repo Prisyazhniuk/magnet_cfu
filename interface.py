@@ -1,7 +1,9 @@
 import os
 import app_widgets
 # import magnetControl as mc
+import sys
 import pyqtgraph as pg
+# from pyqtgraph import PlotWidget
 
 from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal, QIODevice
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
@@ -77,6 +79,13 @@ class MagnetCFU(QMainWindow):
         top_layout     = QGridLayout()
         middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
+
+        plt = pg.plot()
+        hyst_layout.addWidget(plt)
+        # plt.addLegend()
+        # c1 = plt.plot([1, 3, 2, 4], pen='y', name='Yellow Plot')
+        # c2 = plt.plot([2, 1, 4, 3], pen='b', fillLevel=0, fillBrush=(255, 255, 255, 30), name='Blue Plot')
+        # c3 = plt.addLine(y=4, pen='y')
 
         # temp_layout = QVBoxLayout()
         # temp_layout.addWidget(widgets.plotWidget)
