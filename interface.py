@@ -245,21 +245,28 @@ class MagnetCFU(QMainWindow):
 
 
     def init_port(self):
-
-        portOpen = self.port.open()
-
-        if portOpen:
-            self.port.setBaudRate(self.baudRate())
-            self.port.setDataBits(QSerialPort.Data8)
-            self.port.setParity(QSerialPort.NoParity)
-            self.port.setStopBits(QSerialPort.OneStop)
-            self.port.setFlowControl(QSerialPort.NoFlowControl)
-
-            return True
-
+        widgets = app_widgets.WidgetsForApp()
+        if not QSerialPortInfo.availablePorts():
+            self.status_text.setText(" no ports ")
+            widgets.btn_save.setCheckable(True)
         else:
-            return False
-
+            self.port.setPortName(widgets.cb_COM.currentText())
+            self.port.setBaudRate(int(widgets.cb_baud_rates.currentText()))
+            self.port.setParity(widgets.cb_parity.currentIndex())
+            self.port.setDataBits(int(widgets.cb_data_bits.currentIndex() + 5))
+            self.port.setFlowControl(widgets.cb_flow_control.currentIndex())
+            self.port.setStopBits(widgets.cb_stop_bits.currentIndex())
+            ready = self.port.open(QIODevice.ReadWrite)
+            if not ready:
+                self.status_text.setText("Port open error")
+                widgets.btn_IDN.setChecked(False)
+                self.serialControlEnable(True)
+            else:
+                self.status_text.setText("Port opened")
+                self.serialControlEnable(False)
+        # self.port.close()
+        # self.status_text.setText("Port closed")
+        # self.serialControlEnable(True)
 
 
     def on_clicked_btn_open_serial_data(self):
@@ -273,9 +280,14 @@ class MagnetCFU(QMainWindow):
 
     def on_clicked_btn_IDN(self):
         widgets = app_widgets.WidgetsForApp()
-        if not QSerialPortInfo.availablePorts():
-            self.status_text.setText(" no ports ")
-            widgets.btn_save.setCheckable(True)
+        self.init_port()
+        self.port.write("A007*IDN?\n".encode())
+        result = self.port.read(33)
+        self.port.close()
+        self.status_text.setText("Port closed")
+        widgets.le_IDN.setText(str(result))
+
+
 
         # if flag:
         #     self.port.setPortName(self.portName())
