@@ -1,11 +1,10 @@
 import os
-import app_widgets
-# import magnetControl as mc
 import sys
+import app_widgets
 import pyqtgraph as pg
-# from pyqtgraph import PlotWidget
+from random import randint
 
-from PyQt5.QtCore import QSize, Qt, pyqtSlot, pyqtSignal, QIODevice
+from PyQt5.QtCore import QTimer, Qt, pyqtSlot, pyqtSignal, QIODevice
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtGui import QIcon, QFont, QFontDatabase
 from PyQt5.QtWidgets import (
@@ -20,24 +19,32 @@ from PyQt5.QtWidgets import (
     QGridLayout
 )
 
+
 class MagnetCFU(QMainWindow):
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
-
         widgets = app_widgets.WidgetsForApp()
-
-
-        self.ports = []
-        self.serial_data = ''
         self.port = QSerialPort()
-        self.data_port_read = ''
 
-        # y = [2, 8, 6, 8, 6, 11, 14, 13, 18, 19]
-        # x = range(0, 10)
-        # plt = pg.plot()
-        # plt.addLegend()
+        self.graph_widget = pg.PlotWidget()
+        self.timer = QTimer()
+        self.timer.setInterval(50)
+        self.timer.timeout.connect(self.update_plot_data)
+        self.timer.start()
+        self.x = list(range(100))  # 100 time points
+        self.y = [randint(0, 100) for _ in range(100)]  # 100 data points
+        pen = pg.mkPen(color=(255, 0, 0), width=15, style=Qt.DotLine)
+        self.data_line = self.graph_widget.plot(self.x, self.y)
+        self.graph_widget.setTitle("<span style=\"color:blue;font-size:30pt\">o.o</span>")
+        styles = {'color': 'r', 'font-size': '20px'}
+        self.graph_widget.setLabel('left', 'Temperature (°C)', **styles)
+        self.graph_widget.setLabel('bottom', 'Hour (H)', **styles)
+        self.graph_widget.scene().sigMouseClicked.connect(self.onMouseClicked)
+        self.graph_widget.showGrid(x=True, y=True)
 
-
+        # self.ports = []
+        # self.serial_data = ''
+        # self.data_port_read = ''
 
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
@@ -80,8 +87,10 @@ class MagnetCFU(QMainWindow):
         middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
 
-        plt = pg.plot()
-        hyst_layout.addWidget(plt)
+        # plt = pg.plot()
+        # hyst_layout.addWidget(plt)
+        hyst_layout.addWidget(self.graph_widget)
+
         # plt.addLegend()
         # c1 = plt.plot([1, 3, 2, 4], pen='y', name='Yellow Plot')
         # c2 = plt.plot([2, 1, 4, 3], pen='b', fillLevel=0, fillBrush=(255, 255, 255, 30), name='Blue Plot')
@@ -129,7 +138,7 @@ class MagnetCFU(QMainWindow):
         widgets.btn_reset.clicked.connect(self.on_clicked_btn_reset)
         widgets.btn_start_meas.clicked.connect(self.on_clicked_btn_start_meas)
         widgets.btn_open.clicked.connect(self.on_clicked_btn_open)
-        #widgets.btn_save.clicked.connect(self.on_clicked_btn_save)
+        # widgets.btn_save.clicked.connect(self.on_clicked_btn_save)
 
         widgets.box_1.setLayout(top_layout)
         widgets.box_2.setLayout(middle_layout)
@@ -283,7 +292,6 @@ class MagnetCFU(QMainWindow):
         self.init_port()
         self.port.write("A007*IDN?\n".encode())
         result = self.port.read(33)
-        self.port.close()
         self.status_text.setText("Port closed")
         widgets.le_IDN.setText(str(result))
 
@@ -326,4 +334,19 @@ class MagnetCFU(QMainWindow):
 
     # def on_clicked_btn_save(self):
     #     print()
+
+    def update_plot_data(self):
+
+        self.x = self.x[1:]  # Remove the first y element.
+        self.x.append(self.x[-1] + 1)  # Add a new value 1 higher than the last.
+
+        self.y = self.y[1:]  # Remove the first
+        self.y.append( randint(0,100))  # Add a new random value.
+        self.data_line.setData(self.x, self.y)  # Update the data.
+
+    def onMouseClicked(self, event):
+        pos = event.scenePos()
+        x = pos.x()
+        y = pos.y()
+        self.status_text.setText("Координаты точки: x = {}, y = {}".format(x, y))
 

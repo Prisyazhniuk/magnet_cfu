@@ -1,7 +1,6 @@
 import sys
 import pyqtgraph as pg
 from pyqtgraph import PlotWidget
-# # from PyQt5 import uic
 from PyQt5.QtCore import Qt, pyqtSlot, pyqtSignal, QObject
 from PyQt5.QtSerialPort import QSerialPortInfo
 from PyQt5.QtWidgets import (
@@ -22,11 +21,8 @@ from PyQt5.QtWidgets import (
     QVBoxLayout,
     QGraphicsWidget
 )
-# class Ui(QMainWindow):
-#     def __init__(self):
-#         super(Ui, self).__init__() # Call the inherited classes __init__ method
-#         uic.loadUi('basic.ui', self) # Load the .ui file
-#         self.show() # Show the GUI
+
+
 class CustomDoubleSpinbox(QDoubleSpinBox):
     def validate(self, text: str, pos: int) -> object:
         text = text.replace(".", ",")
@@ -35,6 +31,7 @@ class CustomDoubleSpinbox(QDoubleSpinBox):
     def valueFromText(self, text: str) -> float:
         text = text.replace(",", ".")
         return float(text)
+
 
 class newWindow(QMainWindow):
     def __init__(self, parent=None):
@@ -52,6 +49,7 @@ class newWindow(QMainWindow):
         self.setWindowTitle("Hex Code")
         self.setCentralWidget(container)
         self.resize(400, 400)
+
 
 class WidgetsForApp(QWidget):
     def __init__(self, parent=None):
