@@ -27,7 +27,6 @@ You will generally install pyqt5-tools using ``pip install``. In most cases you 
 Install the package with pip:
 
     pip install zhinst-toolkit
-Documentation
 For a full documentation see [here](https://docs.zhinst.com/zhinst-toolkit/en/latest).
 
 # pyqtgraph
