@@ -92,8 +92,8 @@ class WidgetsForApp(QWidget):
         self.sb_loops.setValue(1)
         self.sb_loops.setFixedSize(45, 35)
         self.le_IDN = QLineEdit()
-        self.le_IDN.setReadOnly(1)
-        self.le_IDN.setFixedHeight(26)
+        #self.le_IDN.setReadOnly(1)
+        #self.le_IDN.setFixedHeight(26)
         self.le_resistance = QLineEdit()
         self.le_resistance.setDisabled(True)
         self.le_resistance.setFixedSize(120, 35)
@@ -109,7 +109,6 @@ class WidgetsForApp(QWidget):
         self.cb_COM.setFixedWidth(90)
 
         self.btn_IDN = QPushButton("&IDN")
-        self.btn_IDN.setCheckable(0)
         self.btn_IDN.setFixedWidth(70)
         self.btn_start = QPushButton("&Set Current")
         self.btn_start.setCheckable(1)

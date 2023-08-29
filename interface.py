@@ -45,6 +45,8 @@ class MagnetCFU(QMainWindow):
         # self.ports = []
         # self.serial_data = ''
         # self.data_port_read = ''
+        self.twin_le_IDN = widgets.le_IDN
+        self.twin_btn_IDN = widgets.btn_IDN
 
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
         self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
@@ -102,7 +104,7 @@ class MagnetCFU(QMainWindow):
         top_layout.addWidget(widgets.lbl_COM,           0, 0, Qt.AlignCenter)
         top_layout.addWidget(widgets.cb_COM,            0, 1)
         top_layout.addWidget(widgets.btn_IDN,           1, 0)
-        top_layout.addWidget(widgets.le_IDN,            1, 1)
+        top_layout.addWidget(self.twin_le_IDN,            1, 1)
 
         middle_layout.addWidget(widgets.lbl_I_start,    2, 1, Qt.AlignCenter)
         middle_layout.addWidget(widgets.lbl_I_stop,     0, 1, Qt.AlignCenter)
@@ -131,7 +133,7 @@ class MagnetCFU(QMainWindow):
         # widgets.hysteresis.setLayout(temp_layout)
         hyst_layout.addWidget(widgets.hysteresis)
 
-        # widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
+        # All connections
         widgets.btn_IDN.clicked.connect(self.on_clicked_btn_IDN)
         widgets.btn_start.clicked.connect(self.on_clicked_btn_start)
         widgets.btn_stop.clicked.connect(self.on_clicked_btn_stop)
@@ -139,6 +141,8 @@ class MagnetCFU(QMainWindow):
         widgets.btn_start_meas.clicked.connect(self.on_clicked_btn_start_meas)
         widgets.btn_open.clicked.connect(self.on_clicked_btn_open)
         # widgets.btn_save.clicked.connect(self.on_clicked_btn_save)
+        self.port.readyRead.connect(self.read_from_port)
+
 
         widgets.box_1.setLayout(top_layout)
         widgets.box_2.setLayout(middle_layout)
@@ -289,12 +293,24 @@ class MagnetCFU(QMainWindow):
 
     def on_clicked_btn_IDN(self):
         widgets = app_widgets.WidgetsForApp()
+
         self.init_port()
         self.port.write("A007*IDN?\n".encode())
-        result = self.port.read(33)
-        self.status_text.setText("Port closed")
-        widgets.le_IDN.setText(str(result))
 
+    def read_from_port(self):
+        data = self.port.read(33)
+        self.twin_le_IDN.setText(str(data.rstrip()))
+
+
+
+    # def onReadSave(self):
+    #     widgets = app_widgets.WidgetsForApp()
+    #     rx = self.port.read(33).strip()
+    #
+    #     twin_le_IDN = widgets.le_IDN
+    #     self.twin_le_IDN.setText(str(rx))
+    #     self.status_text.setText(str(rx))
+    #     print(str(rx))
 
 
         # if flag:
@@ -348,5 +364,5 @@ class MagnetCFU(QMainWindow):
         pos = event.scenePos()
         x = pos.x()
         y = pos.y()
-        self.status_text.setText("Координаты точки: x = {}, y = {}".format(x, y))
+        self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
 
