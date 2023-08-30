@@ -1,6 +1,7 @@
 import os
 import sys
 import pyqtgraph as pg
+import time
 from random import randint
 
 from PyQt5.QtCore import QTimer, Qt, QIODevice
@@ -70,11 +71,18 @@ class MagnetCFU(QMainWindow):
         self.port = QSerialPort()
         self.graph_widget = pg.PlotWidget()
         self.timer = QTimer()
+        self.timer_mang = QTimer()
+        self.data_glob = ''
 
         # Draw a graph
         self.timer.setInterval(50)
         self.timer.timeout.connect(self.update_plot_data)
         self.timer.start()
+
+        # self.timer_mang.setInterval(1000)
+        # self.timer_mang.timeout.connect(self.on_btn_idn)
+        # self.timer_mang.start()
+
         self.x = list(range(100))  # 100 time points
         self.y = [randint(0, 100) for _ in range(100)]  # 100 data points
         pen = pg.mkPen(color=(255, 0, 0), width=15, style=Qt.DotLine)
@@ -409,10 +417,10 @@ class MagnetCFU(QMainWindow):
             if not ready:
                 self.status_text.setText("Port open error")
                 self.btn_IDN.setChecked(False)
-                self.serialControlEnable(True)
+                self.serial_control_enable(True)
             else:
                 self.status_text.setText("Port opened")
-                self.serialControlEnable(False)
+                self.serial_control_enable(False)
         # self.port.close()
         # self.status_text.setText("Port closed")
         # self.serialControlEnable(True)
@@ -424,17 +432,24 @@ class MagnetCFU(QMainWindow):
 
     def on_btn_idn(self):
         self.init_port()
+        test_1 = ""
+        test_2 = ""
+        test_3 = ""
         self.port.write("A007*IDN?\n".encode())
 
-    def read_from_port(self):
-        data = self.port.read(33)
-        self.le_IDN.setText(str(data.rstrip()))
-        self.port.write("A007MEAS:VOLT?\n".encode())
-        res_volt = self.port.read(30)
-        self.port.write("A007MEAS:CURR?\n".encode())
-        res_curr = self.port.read(30)
-        self.le_volt.setText(res_volt)
-        self.le_amper.setText(res_curr)
+        self.le_IDN.setText(self.read_from_port(test_1))
+        self.status_text.setText(self.read_from_port(test_2))
+
+        # self.port.write("A007MEAS:VOLT?\n".encode())
+        # res_volt = self.port.read(30)
+        # self.port.write("A007MEAS:CURR?\n".encode())
+        # res_curr = self.port.read(30)
+        # self.le_volt.setText(str(res_volt))
+        # self.le_amper.setText(str(res_curr))
+
+    def read_from_port(self, value):
+        data = self.port.read(33).rstrip()
+        value = str(data)
 
     # def onReadSave(self):
     #     widgets = app_widgets.WidgetsForApp()
