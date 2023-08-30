@@ -138,8 +138,8 @@ class MagnetCFU(QMainWindow):
 
         self.btn_IDN = QPushButton("&IDN")
         self.btn_IDN.setFixedWidth(70)
-        self.btn_start = QPushButton("&Set Current")
-        self.btn_start.setCheckable(1)
+        self.btn_set_curr = QPushButton("&Set Current")
+        self.btn_set_curr.setCheckable(1)
         self.btn_stop = QPushButton("&Stop")
         self.btn_reset = QPushButton("Reset")
         self.btn_reset.setCheckable(1)
@@ -275,7 +275,7 @@ class MagnetCFU(QMainWindow):
         middle_layout.addWidget(self.dsb_step,       3, 0)
         middle_layout.addWidget(self.sb_loops,       1, 0, Qt.AlignCenter)
 
-        bottom_layout.addWidget(self.btn_start,      0, 0)
+        bottom_layout.addWidget(self.btn_set_curr,      0, 0)
         bottom_layout.addWidget(self.btn_stop,       0, 1)
         bottom_layout.addWidget(self.btn_reset,      1, 0)
         bottom_layout.addWidget(self.btn_start_meas, 1, 1)
@@ -287,7 +287,7 @@ class MagnetCFU(QMainWindow):
 
         # All connections
         self.btn_IDN.clicked.connect(self.on_btn_idn)
-        self.btn_start.clicked.connect(self.on_btn_start)
+        self.btn_set_curr.clicked.connect(self.on_btn_set_curr)
         self.btn_stop.clicked.connect(self.on_btn_stop)
         self.btn_reset.clicked.connect(self.on_btn_reset)
         self.btn_start_meas.clicked.connect(self.on_btn_start_meas)
@@ -428,7 +428,13 @@ class MagnetCFU(QMainWindow):
 
     def read_from_port(self):
         data = self.port.read(33)
-        self.twin_le_IDN.setText(str(data.rstrip()))
+        self.le_IDN.setText(str(data.rstrip()))
+        self.port.write("A007MEAS:VOLT?\n".encode())
+        res_volt = self.port.read(30)
+        self.port.write("A007MEAS:CURR?\n".encode())
+        res_curr = self.port.read(30)
+        self.le_volt.setText(res_volt)
+        self.le_amper.setText(res_curr)
 
     # def onReadSave(self):
     #     widgets = app_widgets.WidgetsForApp()
@@ -459,14 +465,14 @@ class MagnetCFU(QMainWindow):
         #     self.status_text.setText('Port closed')
         #     self.serialControlEnable(True)
 
-    def on_btn_start(self):
+    def on_btn_set_curr(self):
         pass
 
     def on_btn_stop(self):
         pass
 
     def on_btn_reset(self):
-        pass
+        self.le_amper.setText("test")
 
     def on_btn_start_meas(self):
         pass
@@ -491,3 +497,8 @@ class MagnetCFU(QMainWindow):
         x = pos.x()
         y = pos.y()
         self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
+
+    def magn_read_va(self):
+        self.init_port()
+
+
