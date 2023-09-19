@@ -348,26 +348,26 @@ class MagnetCFU(QMainWindow):
         _configure_tab.setLayout(layout)
         return _configure_tab
 
-    def port_write(self, flag):
-        if flag:
-            self.port.setBaudRate(self.cb_baud_rates())
-            self.port.setPortName(self.cb_port_names())
-            self.port.setDataBits(self.cb_data_bits())
-            self.port.setParity(self.cb_parity())
-            self.port.setStopBits(self.cb_stop_bits())
-            self.port.setFlowControl(self.cb_flow_control())
-            r = self.port.open(QIODevice.ReadWrite)
-            if not r:
-                self.status_text.setText("Port open error")
-                self.btn_port_open.setCheckable(False)
-                self.serial_control_enable(True)
-            else:
-                self.status_text.setText("Port opened")
-                self.serial_control_enable(False)
-        else:
-            self.port.close()
-            self.status_text.setText("Port closed")
-            self.serial_control_enable(True)
+    # def port_write(self, flag):
+    #     if flag:
+    #         self.port.setBaudRate(self.cb_baud_rates())
+    #         self.port.setPortName(self.cb_port_names())
+    #         self.port.setDataBits(self.cb_data_bits())
+    #         self.port.setParity(self.cb_parity())
+    #         self.port.setStopBits(self.cb_stop_bits())
+    #         self.port.setFlowControl(self.cb_flow_control())
+    #         r = self.port.open(QIODevice.ReadWrite)
+    #         if not r:
+    #             self.status_text.setText("Port open error")
+    #             self.btn_port_open.setCheckable(False)
+    #             self.serial_control_enable(True)
+    #         else:
+    #             self.status_text.setText("Port opened")
+    #             self.serial_control_enable(False)
+    #     else:
+    #         self.port.close()
+    #         self.status_text.setText("Port closed")
+    #         self.serial_control_enable(True)
 
     def serial_control_enable(self, flag):
 
@@ -422,17 +422,16 @@ class MagnetCFU(QMainWindow):
             self.port.setDataBits(int(self.cb_data_bits.currentIndex() + 5))
             self.port.setFlowControl(self.cb_flow_control.currentIndex())
             self.port.setStopBits(self.cb_stop_bits.currentIndex())
-            ready = self.port.open(QIODevice.ReadWrite)
-            if not ready:
-                self.status_text.setText("Port open error")
-                self.btn_IDN.setChecked(False)
-                self.serial_control_enable(True)
-            else:
-                self.status_text.setText("Port opened")
-                self.serial_control_enable(False)
         # self.port.close()
         # self.status_text.setText("Port closed")
         # self.serialControlEnable(True)
+        ready = self.port.open(QIODevice.ReadWrite)
+        if not ready:
+            self.status_text.setText("Port open error")
+            self.btn_IDN.setChecked(False)
+            self.serial_control_enable(True)
+        else:
+            self.status_text.setText("Port opened")
 
     # def appendSerialText(self, appendText):
     #     widgets = app_widgets.WidgetsForApp()
@@ -442,28 +441,58 @@ class MagnetCFU(QMainWindow):
     def on_btn_idn(self):
         # self.timer_mang.start()
         self.init_port()
-        self.read_from_port()
         self.port.write("A007*IDN?\n".encode())
-        self.le_IDN.setText(self.output_te)
-        self.status_text.setText(self.output_te)
+        self.read_idn_from_port()
+
+        # self.init_port()
+        # self.port.write("A007MEAS:VOLT?\n".encode())
+        # self.read_volt()
+        #
+        # self.init_port()
+        # self.port.write("A007MEAS:CURR?\n".encode())
+        # self.read_amper()
+
         
     @pyqtSlot()
-    def read_from_port(self):
+    def read_idn_from_port(self):
         # good realization
-        ##### self.port.isDataTerminalReady()
+        # self.serial_control_enable(False) # flag on configs serial port
+        # self.port.isDataTerminalReady()
+        self.port.readyRead.emit()
+
         while self.port.canReadLine():
             text = self.port.readLine().data().decode()
             text = text.rstrip('\r\n')
-            self.output_te = text
+            # self.output_te = text
+            # input_data = text
+
+            self.le_IDN.setText(text)
+            self.status_text.setText(text)
+            self.port.close()
+
+        # self.le_IDN.setText(self.output_te)
+        # self.status_text.setText(self.output_te)
+
     #
-    # def write_volt_amper(self):
-    #     self.init_port()
-    #     self.port.write("A007MEAS:VOLT?\n".encode())
-    #     self.volt_glob = self.port.read(30)
-    #     self.port.write("A007MEAS:CURR?\n".encode())
-    #     self.amper_glob = self.port.read(30)
-    #     self.le_volt.setText(str(self.volt_glob))
-    #     self.le_amper.setText(str(self.amper_glob))
+    def read_volt(self):
+        self.port.readyRead.emit()
+
+        volt = self.port.readLine()
+        volt_s = str(volt, 'utf-8').strip()
+
+        self.le_volt.setText(volt_s)
+        self.port.close()
+
+
+    def read_amper(self):
+        self.port.readyRead.emit()
+
+        amper = self.port.readLine()
+        amper_s = str(amper, 'utf-8').strip()
+
+        self.le_amper.setText(amper_s)
+        self.port.close()
+
 
     # def read_volt_amper(self):
     #
@@ -525,7 +554,7 @@ class MagnetCFU(QMainWindow):
         self.x.append(self.x[-1] + 1)  # Add a new value 1 higher than the last.
 
         self.y = self.y[1:]  # Remove the first
-        self.y.append( randint(0,100))  # Add a new random value.
+        self.y.append(randint(0, 100))  # Add a new random value.
         self.data_line.setData(self.x, self.y)  # Update the data.
 
     def on_mouse_clicked(self, event):
