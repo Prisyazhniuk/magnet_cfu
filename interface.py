@@ -35,35 +35,6 @@ class CustomDoubleSpinbox(QDoubleSpinBox):
         return float(text)
 
 
-class NewWindow(QMainWindow):
-    def __init__(self, parent=None):
-        super(NewWindow, self).__init__(parent)
-
-        layout = QVBoxLayout()
-        container = QWidget()
-        self.Line = QLineEdit("Some Text")
-        self.lbl = QLabel('00 01 02 03 04 05 06 07 08 09 0A 0B 0C 0D 0E 0F')
-
-        layout.addWidget(self.lbl)
-        layout.addWidget(self.Line)
-        container.setLayout(layout)
-
-        self.setWindowTitle("Hex Code")
-        self.setCentralWidget(container)
-        self.resize(400, 400)
-
-        # self.plotWidget = pg.PlotWidget(self)
-        # self.plotWidget.plot([1, 2, 3, 4])
-        # self.plotWidget.scene().sigMouseClicked.connect(self.onMouseClicked)
-        # plt.addLegend()
-        # self.c2 = plt.plot([2, 1, 4, 3], pen='b', fillLevel=0, fillBrush=(255, 255, 255, 30), name='Blue Plot')
-
-
-def on_clicked_btn_open_serial_data():
-    window = NewWindow()
-    window.show()
-
-
 class MagnetCFU(QMainWindow):
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
@@ -76,24 +47,25 @@ class MagnetCFU(QMainWindow):
         self.volt_glob = ''
         self.amper_glob = ''
         self.output_te = ''
+        self.output_idn = ''
         self.buffer = bytearray()
 
         # Draw a graph
-        self.timer.setInterval(50)
-        self.timer.timeout.connect(self.update_plot_data)
-        self.timer.start()
-
-
-        self.x = list(range(100))  # 100 time points
-        self.y = [randint(0, 100) for _ in range(100)]  # 100 data points
-        pen = pg.mkPen(color=(255, 0, 0), width=15, style=Qt.DotLine)
-        self.data_line = self.graph_widget.plot(self.x, self.y)
-        self.graph_widget.setTitle("<span style=\"color:blue;font-size:30pt\">o.o</span>")
-        styles = {'color': 'r', 'font-size': '20px'}
-        self.graph_widget.setLabel('left', 'Temperature (°C)', **styles)
-        self.graph_widget.setLabel('bottom', 'Hour (H)', **styles)
-        self.graph_widget.scene().sigMouseClicked.connect(self.on_mouse_clicked)
-        self.graph_widget.showGrid(x=True, y=True)
+        # self.timer.setInterval(50)
+        # self.timer.timeout.connect(self.update_plot_data)
+        # self.timer.start()
+        #
+        #
+        # self.x = list(range(100))  # 100 time points
+        # self.y = [randint(0, 100) for _ in range(100)]  # 100 data points
+        # pen = pg.mkPen(color=(255, 0, 0), width=15, style=Qt.DotLine)
+        # self.data_line = self.graph_widget.plot(self.x, self.y)
+        # self.graph_widget.setTitle("<span style=\"color:blue;font-size:20pt\">Hysteresis</span>")
+        # styles = {'color': 'r', 'font-size': '20px'}
+        # self.graph_widget.setLabel('left', 'Temperature (°C)', **styles)
+        # self.graph_widget.setLabel('bottom', 'Hour (H)', **styles)
+        # self.graph_widget.scene().sigMouseClicked.connect(self.on_mouse_clicked)
+        # self.graph_widget.showGrid(x=True, y=True)
 
         # Creating interface elements
         self.hysteresis = QWidget()
@@ -273,8 +245,8 @@ class MagnetCFU(QMainWindow):
         top_layout.addWidget(self.btn_IDN,           1, 0)
         top_layout.addWidget(self.le_IDN,            1, 1)
 
-        middle_layout.addWidget(self.lbl_I_start,    2, 1, Qt.AlignCenter)
-        middle_layout.addWidget(self.lbl_I_stop,     0, 1, Qt.AlignCenter)
+        middle_layout.addWidget(self.lbl_I_start,    0, 1, Qt.AlignCenter)
+        middle_layout.addWidget(self.lbl_I_stop,     2, 1, Qt.AlignCenter)
         middle_layout.addWidget(self.lbl_volt,       2, 2, Qt.AlignCenter)
         middle_layout.addWidget(self.lbl_amper,      0, 2, Qt.AlignCenter)
         middle_layout.addWidget(self.lbl_step,       2, 0, Qt.AlignCenter)
@@ -287,8 +259,8 @@ class MagnetCFU(QMainWindow):
         middle_layout.addWidget(self.le_resistance,  1, 3)
         middle_layout.addWidget(self.sb_interval,    3, 3)
 
-        middle_layout.addWidget(self.dsb_I_start,    3, 1)
-        middle_layout.addWidget(self.dsb_I_stop,     1, 1)
+        middle_layout.addWidget(self.dsb_I_start,    1, 1)
+        middle_layout.addWidget(self.dsb_I_stop,     3, 1)
         middle_layout.addWidget(self.dsb_step,       3, 0)
         middle_layout.addWidget(self.sb_loops,       1, 0, Qt.AlignCenter)
 
@@ -334,40 +306,31 @@ class MagnetCFU(QMainWindow):
         _configure_tab = QWidget()
         layout = QVBoxLayout()
 
-        layout.addWidget(self.btn_port_open)
         layout.addWidget(self.cb_port_names)
+        self.cb_port_names.setFixedSize(120, 40)
         layout.addWidget(self.cb_baud_rates)
+        self.cb_baud_rates.setFixedSize(120, 40)
         layout.addWidget(self.cb_data_bits)
+        self.cb_data_bits.setFixedSize(120, 40)
         layout.addWidget(self.cb_parity)
+        self.cb_parity.setFixedSize(120, 40)
         layout.addWidget(self.cb_stop_bits)
+        self.cb_stop_bits.setFixedSize(120, 40)
         layout.addWidget(self.cb_flow_control)
-        layout.addWidget(self.btn_open_serial_data)
-
-        self.btn_open_serial_data.clicked.connect(on_clicked_btn_open_serial_data)
+        self.cb_flow_control.setFixedSize(120, 40)
 
         _configure_tab.setLayout(layout)
         return _configure_tab
 
-    # def port_write(self, flag):
-    #     if flag:
-    #         self.port.setBaudRate(self.cb_baud_rates())
-    #         self.port.setPortName(self.cb_port_names())
-    #         self.port.setDataBits(self.cb_data_bits())
-    #         self.port.setParity(self.cb_parity())
-    #         self.port.setStopBits(self.cb_stop_bits())
-    #         self.port.setFlowControl(self.cb_flow_control())
-    #         r = self.port.open(QIODevice.ReadWrite)
-    #         if not r:
-    #             self.status_text.setText("Port open error")
-    #             self.btn_port_open.setCheckable(False)
-    #             self.serial_control_enable(True)
-    #         else:
-    #             self.status_text.setText("Port opened")
-    #             self.serial_control_enable(False)
-    #     else:
-    #         self.port.close()
-    #         self.status_text.setText("Port closed")
-    #         self.serial_control_enable(True)
+    def decimal_range(self, start, stop, increment):
+        while start < stop:
+            yield start
+            start += increment
+
+    def rev_decimal_range(self, start, stop, increment):
+        while start > stop:
+            yield start
+            start -= increment
 
     def serial_control_enable(self, flag):
 
@@ -400,10 +363,12 @@ class MagnetCFU(QMainWindow):
         self.port.close()
 
     def receive_port(self):
+        self.port.waitForReadyRead(self.sb_interval.value())
         data = self.port.readAll()
+
         self.serial_data = data.data().decode('utf8')
 
-        return self.serial_data
+        return self.serial_data.rstrip('\r\n')
 
     def write_port(self, data):
         self.port.writeData(data.encode())
@@ -433,73 +398,64 @@ class MagnetCFU(QMainWindow):
         else:
             self.status_text.setText("Port opened")
 
-    # def appendSerialText(self, appendText):
-    #     widgets = app_widgets.WidgetsForApp()
-    #     widgets.serial_data.setText(appendText)
-    #     Text = appendText.encode()
-
     def on_btn_idn(self):
         # self.timer_mang.start()
         self.init_port()
-        self.port.write("A007*IDN?\n".encode())
+        self.write_port("A007*IDN?\n")
         self.read_idn_from_port()
 
         # self.init_port()
-        # self.port.write("A007MEAS:VOLT?\n".encode())
-        # self.read_volt()
+        self.port.write("A007MEAS:VOLT?\n".encode())
+        self.read_volt()
         #
         # self.init_port()
-        # self.port.write("A007MEAS:CURR?\n".encode())
-        # self.read_amper()
+        self.port.write("A007MEAS:CURR?\n".encode())
+        self.read_amper()
+        self.port.close()
 
-        
     @pyqtSlot()
     def read_idn_from_port(self):
-        # good realization
         # self.serial_control_enable(False) # flag on configs serial port
         # self.port.isDataTerminalReady()
-        self.port.readyRead.emit()
+        # self.port.readyRead.emit()
+        self.port.waitForReadyRead(self.sb_interval.value())
 
         while self.port.canReadLine():
             text = self.port.readLine().data().decode()
             text = text.rstrip('\r\n')
-            # self.output_te = text
-            # input_data = text
+            self.output_idn = text
 
             self.le_IDN.setText(text)
-            self.status_text.setText(text)
-            self.port.close()
+            self.status_text.setText("Port closed")
 
         # self.le_IDN.setText(self.output_te)
         # self.status_text.setText(self.output_te)
 
     #
     def read_volt(self):
-        self.port.readyRead.emit()
+        self.port.waitForReadyRead(self.sb_interval.value())
+        volt = ''
+        volt_f = 0.0
 
-        volt = self.port.readLine()
-        volt_s = str(volt, 'utf-8').strip()
-
-        self.le_volt.setText(volt_s)
-        self.port.close()
-
+        while self.port.canReadLine():
+            volt = self.port.readLine().data().decode()
+            volt = volt.rstrip('\r\n')
+        # volt = self.port.readLine()
+        # volt_s = str(volt, 'utf-8').strip()
+            volt_f = float(volt)
+        self.le_volt.setText("{:.2f}".format(volt_f))
 
     def read_amper(self):
-        self.port.readyRead.emit()
+        self.port.waitForReadyRead(self.sb_interval.value())
+        amper = ''
+        amper_f = 0.0
 
-        amper = self.port.readLine()
-        amper_s = str(amper, 'utf-8').strip()
+        while self.port.canReadLine():
+            amper = self.port.readLine().data().decode()
+            amper = amper.rstrip('\r\n')
 
-        self.le_amper.setText(amper_s)
-        self.port.close()
-
-
-    # def read_volt_amper(self):
-    #
-    #     while self.port.canReadLine():
-    #         volt = self.port.readData(33)
-    #         self.volt_glob = volt
-
+            amper_f = float(amper)
+        self.le_amper.setText("{:.2f}".format(amper_f))
 
     # def onReadSave(self):
     #     widgets = app_widgets.WidgetsForApp()
@@ -531,13 +487,75 @@ class MagnetCFU(QMainWindow):
         #     self.serialControlEnable(True)
 
     def on_btn_set_curr(self):
-        pass
+        self.init_port()
+        self.port.waitForReadyRead(self.sb_interval.value())
+        self.port.write("A007SYST:REM\n".encode())
+        self.status_text.setText(self.receive_port())
+        self.port.write("A007*CLS\n".encode())
+        self.status_text.setText(self.receive_port())
+        self.port.write("A007OUTP ON\n".encode())
+        self.status_text.setText(self.receive_port())
+        self.set_curr()
+
+
+    def set_curr(self):
+        index = 0
+        if self.dsb_I_start.value() > 0:
+            for _i in self.decimal_range(index, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+
+        elif self.dsb_I_start.value() < 0:
+            for _i in self.rev_decimal_range(index, self.dsb_I_start.value() - self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
 
     def on_btn_stop(self):
         pass
 
     def on_btn_reset(self):
-        self.le_amper.setText("test")
+        self.init_port()
+        index = 0
+        if self.dsb_I_start.value() > 0:
+            for _i in self.rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
+                                             index - self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+
+            self.port.write("A007OUTP OFF\n".encode())
+            self.receive_port()
+            self.port.write("A007*RST\n".encode())
+            self.port.close()
+
+        elif self.dsb_I_start.value() < 0:
+            index = 0
+            for _i in self.decimal_range(self.dsb_I_start.value() + self.dsb_step.value(), index + self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+
+            self.port.write("A007OUTP OFF\n".encode())
+            self.port.write("A007*RST\n".encode())
+            self.port.close()
 
     def on_btn_start_meas(self):
         pass
@@ -565,5 +583,6 @@ class MagnetCFU(QMainWindow):
 
     def magn_read_va(self):
         self.init_port()
+
 
 
