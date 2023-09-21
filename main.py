@@ -20,7 +20,7 @@ if __name__ == "__main__":
     # # A session opened to HF2 Data Server
     # hf2_session = Session(server_host, hf2=True)
     # device = session.connect_device("DEV4999")
-    # print(device.demods[0].rate.node_info)
+    # device.demods[0].rate.node_info
 
     app.exec()
 

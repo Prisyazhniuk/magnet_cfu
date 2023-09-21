@@ -497,10 +497,37 @@ class MagnetCFU(QMainWindow):
         self.status_text.setText(self.receive_port())
         self.set_curr()
 
+    def read_polarity(self):
+        self.port.waitForReadyRead(self.sb_interval.value())
+        polarity = 0
+
+        while self.port.canReadLine():
+            polarity = self.port.readLine().data().decode()
+            polarity = polarity.rstrip('\r\n')
+            polarity = int(polarity)
+
+            return polarity
 
     def set_curr(self):
         index = 0
-        if self.dsb_I_start.value() > 0:
+        if self.dsb_I_start.value() < 0.0:
+            self.port.write("*POL 2\n".encode())
+            self.receive_port()
+            for _i in self.decimal_range(index, abs(self.dsb_I_start.value()) + self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+                self.btn_set_curr.setChecked(False)
+
+        if self.dsb_I_start.value() > 0.0:
+            self.port.write("*POL 1\n".encode())
+            self.receive_port()
+            # polarity = self.port.write("*POL?\n".encode())
+            # if self.read_polarity() == 2:
             for _i in self.decimal_range(index, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
                 a = "A007SOUR:VOLT "
@@ -509,16 +536,8 @@ class MagnetCFU(QMainWindow):
                 d = _i
                 res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 self.port.write(res.encode())
+                self.btn_set_curr.setChecked(False)
 
-        elif self.dsb_I_start.value() < 0:
-            for _i in self.rev_decimal_range(index, self.dsb_I_start.value() - self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
 
     def on_btn_stop(self):
         pass
@@ -537,14 +556,19 @@ class MagnetCFU(QMainWindow):
                 res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 self.port.write(res.encode())
 
+            self.receive_port()
+            self.port.write("*POL 1\n".encode())
+            self.receive_port()
             self.port.write("A007OUTP OFF\n".encode())
             self.receive_port()
             self.port.write("A007*RST\n".encode())
             self.port.close()
+            self.btn_reset.setChecked(False)
 
-        elif self.dsb_I_start.value() < 0:
+        elif self.dsb_I_start.value() < 0.0:
             index = 0
-            for _i in self.decimal_range(self.dsb_I_start.value() + self.dsb_step.value(), index + self.dsb_step.value(), self.dsb_step.value()):
+            for _i in self.rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
+                                             index - self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
                 a = "A007SOUR:VOLT "
                 b = _i * 10
@@ -553,9 +577,13 @@ class MagnetCFU(QMainWindow):
                 res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 self.port.write(res.encode())
 
+            self.receive_port()
+            self.port.write("*POL 1\n".encode())
+            self.receive_port()
             self.port.write("A007OUTP OFF\n".encode())
             self.port.write("A007*RST\n".encode())
             self.port.close()
+            self.btn_reset.setChecked(False)
 
     def on_btn_start_meas(self):
         pass
