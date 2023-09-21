@@ -126,7 +126,7 @@ class MagnetCFU(QMainWindow):
         self.sb_interval.setValue(1000)
         self.sb_interval.setFixedSize(100, 35)
 
-        # self.timer_mang.setInterval(self.sb_interval.value())
+        # self.timer_mang.setInterval(self.sb_interval.value() / 4)
         # self.timer_mang.timeout.connect(self.on_btn_idn)
 
         self.cb_COM         = QComboBox()
@@ -434,15 +434,13 @@ class MagnetCFU(QMainWindow):
         # self.serial_control_enable(False) # flag on configs serial port
         # self.port.isDataTerminalReady()
         # self.port.readyRead.emit()
-        self.port.waitForReadyRead(self.sb_interval.value())
+        self.port.waitForReadyRead(self.sb_interval.value() // 4)
 
         while self.port.canReadLine():
             text = self.port.readLine().data().decode()
             text = text.rstrip('\r\n')
             self.output_idn = text
-
             self.le_IDN.setText(text)
-            self.status_text.setText("Port closed")
 
         # self.le_IDN.setText(self.output_te)
         # self.status_text.setText(self.output_te)
@@ -602,7 +600,92 @@ class MagnetCFU(QMainWindow):
             self.btn_reset.setChecked(False)
 
     def on_btn_start_meas(self):
-        pass
+        self.init_port()
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        self.port.write("A007SYST:REM\n".encode())
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        self.port.write("A007*CLS\n".encode())
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        self.port.write("A007OUTP ON\n".encode())
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        self.start_meas()
+
+    def start_meas(self):
+        if self.dsb_I_start.value() < 0.0:
+            self.port.write("*POL 2\n".encode())
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            for _i in decimal_range(0, abs(self.dsb_I_start.value()) + self.dsb_step.value(),
+                                    self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+
+            for _i in self.rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
+                                             0 - self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            self.port.write("*POL 1\n".encode())
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+
+            for _i in decimal_range(0, self.dsb_I_stop.value() + self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+                self.btn_start_meas.setChecked(False)
+            self.port.close()
+
+        elif self.dsb_I_start.value() > 0.0:
+            self.port.write("*POL 1\n".encode())
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            for _i in decimal_range(0, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+                self.btn_set_curr.setChecked(False)
+
+            for _i in self.rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
+                                             0 - self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            self.port.write("*POL 2\n".encode())
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+
+            for _i in decimal_range(0, abs(self.dsb_I_stop.value()) + self.dsb_step.value(), self.dsb_step.value()):
+                self.receive_port()
+                a = "A007SOUR:VOLT "
+                b = _i * 10
+                c = "CURR "
+                d = _i
+                res = f"{a}{b:.3f};{c}{d:.3f}\n"
+                self.port.write(res.encode())
+                self.btn_start_meas.setChecked(False)
+            self.port.close()
 
     def on_btn_open(self):
         pass
