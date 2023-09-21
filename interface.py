@@ -35,6 +35,12 @@ class CustomDoubleSpinbox(QDoubleSpinBox):
         return float(text)
 
 
+def decimal_range(start, stop, increment):
+    while start < stop:
+        yield start
+        start += increment
+
+
 class MagnetCFU(QMainWindow):
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
@@ -71,82 +77,88 @@ class MagnetCFU(QMainWindow):
         self.hysteresis = QWidget()
         self.hysteresis.setFixedSize(500, 300)
 
-        self.lbl_COM = QLabel("COM")
-        self.lbl_I_start = QLabel("I start, A")
-        self.lbl_I_stop = QLabel("I stop, A")
-        self.lbl_volt = QLabel("Volt")
-        self.lbl_volt.setFixedSize(45, 40)
-        self.lbl_amper = QLabel("Amper")
-        self.lbl_amper.setFixedSize(45, 40)
-        self.lbl_step = QLabel("Step")
+        self.lbl_COM        = QLabel("COM")
+        self.lbl_I_start    = QLabel("I start, A")
+        self.lbl_I_stop     = QLabel("I stop, A")
+        self.lbl_volt       = QLabel("Volt")
+        self.lbl_amper      = QLabel("Amper")
+        self.lbl_step       = QLabel("Step")
         self.lbl_resistance = QLabel("Resistance")
-        self.lbl_loops = QLabel("Loops")
-        self.lbl_interval = QLabel("Interval, ms")
+        self.lbl_loops      = QLabel("Loops")
+        self.lbl_interval   = QLabel("Interval, ms")
 
-        self.dsb_I_start = QDoubleSpinBox()
+        self.lbl_volt.setFixedSize(45, 40)
+        self.lbl_amper.setFixedSize(45, 40)
+
+        self.dsb_I_start    = QDoubleSpinBox()
+        self.dsb_I_stop     = QDoubleSpinBox()
+        self.dsb_step       = QDoubleSpinBox()
+
         self.dsb_I_start.setRange(-7.5, 7.5)
-        self.dsb_I_start.setFixedSize(70, 35)
-        self.dsb_I_stop = QDoubleSpinBox()
         self.dsb_I_stop.setRange(-7.5, 7.5)
-        self.dsb_I_stop.setFixedSize(70, 35)
-        self.dsb_step = QDoubleSpinBox()
         self.dsb_step.setRange(0.01, 0.05)
         self.dsb_step.setFixedSize(70, 35)
+        self.dsb_I_stop.setFixedSize(70, 35)
+        self.dsb_I_start.setFixedSize(70, 35)
 
-        self.sb_loops = QSpinBox()
+        self.sb_loops       = QSpinBox()
+        self.sb_interval    = QSpinBox()
+
         self.sb_loops.setValue(1)
         self.sb_loops.setFixedSize(45, 35)
 
-        self.le_IDN = QLineEdit()
+        self.le_IDN         = QLineEdit()
+        self.le_resistance  = QLineEdit()
+        self.le_volt        = QLineEdit()
+        self.le_amper       = QLineEdit()
+
         self.le_IDN.setReadOnly(1)
         self.le_IDN.setFixedHeight(26)
-        self.le_resistance = QLineEdit()
         self.le_resistance.setDisabled(True)
         self.le_resistance.setFixedSize(100, 35)
-        self.le_volt = QLineEdit()
         self.le_volt.setDisabled(True)
-        self.le_volt.setPlaceholderText("0.0")
+        self.le_volt.setPlaceholderText("0.00")
         self.le_volt.setFixedSize(70, 35)
-        self.le_amper = QLineEdit()
         self.le_amper.setDisabled(True)
-        self.le_amper.setPlaceholderText("0.0")
+        self.le_amper.setPlaceholderText("0.00")
         self.le_amper.setFixedSize(70, 35)
-        self.sb_interval = QSpinBox()
         self.sb_interval.setRange(0, 10000)
         self.sb_interval.setValue(1000)
         self.sb_interval.setFixedSize(100, 35)
 
-        self.timer_mang.setInterval(self.sb_interval.value())
-        self.timer_mang.timeout.connect(self.on_btn_idn)
+        # self.timer_mang.setInterval(self.sb_interval.value())
+        # self.timer_mang.timeout.connect(self.on_btn_idn)
 
-        self.cb_COM = QComboBox()
+        self.cb_COM         = QComboBox()
+
         self.cb_COM.setFixedWidth(90)
 
-        self.btn_IDN = QPushButton("&IDN")
-        self.btn_IDN.setFixedWidth(70)
-        self.btn_set_curr = QPushButton("&Set Current")
-        self.btn_set_curr.setCheckable(1)
-        self.btn_stop = QPushButton("&Stop")
-        self.btn_reset = QPushButton("Reset")
-        self.btn_reset.setCheckable(1)
+        self.btn_IDN        = QPushButton("&IDN")
+        self.btn_set_curr   = QPushButton("&Set Current")
+        self.btn_stop       = QPushButton("&Stop")
+        self.btn_reset      = QPushButton("Reset")
         self.btn_start_meas = QPushButton("&Start Measurement")
-        self.btn_start_meas.setCheckable(1)
-        self.btn_open = QPushButton("&Open...")
-        self.btn_save = QPushButton("&Save")
+        self.btn_open       = QPushButton("&Open...")
+        self.btn_save       = QPushButton("&Save")
+
+        self.btn_IDN.setFixedWidth(70)
+        self.btn_set_curr.setCheckable(True)
+        self.btn_reset.setCheckable(True)
+        self.btn_start_meas.setCheckable(True)
 
         # Config Tab
-        self.btn_port_open = QPushButton("Open")
-        self.btn_port_open.setCheckable(True)
-        self.btn_open_serial_data = QPushButton("Open Serial data")
+        self.cb_baud_rates    = QComboBox()
+        self.cb_data_bits     = QComboBox()
+        self.cb_parity        = QComboBox()
+        self.cb_stop_bits     = QComboBox()
+        self.cb_flow_control  = QComboBox()
 
-        self.cb_port_names = QComboBox()
-        self.cb_baud_rates = QComboBox()
-        self.cb_data_bits = QComboBox()
-        self.cb_parity = QComboBox()
-        self.cb_stop_bits = QComboBox()
-        self.cb_flow_control = QComboBox()
+        self.lbl_baud_rates   = QLabel("Baud Rates")
+        self.lbl_data_bits    = QLabel("Data Bits")
+        self.lbl_parity       = QLabel("Parity")
+        self.lbl_stop_bits    = QLabel("Stop Bits")
+        self.lbl_flow_control = QLabel("Flow Control")
 
-        self.cb_port_names.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
         self.cb_baud_rates.addItems([
             '110', '300', '600', '1200', '2400', '4800', '9600', '14400', '19200', '28800',
             '31250', '38400', '51200', '56000', '57600', '76800', '115200', '128000', '230400', '256000', '921600'
@@ -161,7 +173,7 @@ class MagnetCFU(QMainWindow):
         self.cb_flow_control.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
         self.cb_flow_control.setCurrentIndex(0)
 
-        # Group Box
+        # Hysteresis tab - Group Box
         self.box_1 = QGroupBox("Info")
         self.box_2 = QGroupBox("Value")
         self.box_3 = QGroupBox("Control")
@@ -221,14 +233,14 @@ class MagnetCFU(QMainWindow):
     def hysteresis_tab(self):
         _hysteresis_tab = QWidget()
 
-        outer_layout   = QVBoxLayout()
-        v_outer_layout = QVBoxLayout()
-        h_outer_layout = QHBoxLayout()
+        outer_layout    = QVBoxLayout()
+        v_outer_layout  = QVBoxLayout()
+        h_outer_layout  = QHBoxLayout()
 
-        hyst_layout    = QVBoxLayout()
-        top_layout     = QGridLayout()
-        middle_layout  = QGridLayout()
-        bottom_layout  = QGridLayout()
+        hyst_layout     = QVBoxLayout()
+        top_layout      = QGridLayout()
+        middle_layout   = QGridLayout()
+        bottom_layout   = QGridLayout()
 
         hyst_layout.addWidget(self.graph_widget)
 
@@ -236,9 +248,6 @@ class MagnetCFU(QMainWindow):
         # c1 = plt.plot([1, 3, 2, 4], pen='y', name='Yellow Plot')
         # c2 = plt.plot([2, 1, 4, 3], pen='b', fillLevel=0, fillBrush=(255, 255, 255, 30), name='Blue Plot')
         # c3 = plt.addLine(y=4, pen='y')
-
-        # temp_layout = QVBoxLayout()
-        # temp_layout.addWidget(widgets.plotWidget)
 
         top_layout.addWidget(self.lbl_COM,           0, 0, Qt.AlignCenter)
         top_layout.addWidget(self.cb_COM,            0, 1)
@@ -271,7 +280,6 @@ class MagnetCFU(QMainWindow):
         bottom_layout.addWidget(self.btn_open,       2, 0)
         bottom_layout.addWidget(self.btn_save,       2, 1)
 
-        # widgets.hysteresis.setLayout(temp_layout)
         hyst_layout.addWidget(self.hysteresis)
 
         # All connections
@@ -304,28 +312,36 @@ class MagnetCFU(QMainWindow):
 
     def configure_tab(self):
         _configure_tab = QWidget()
-        layout = QVBoxLayout()
 
-        layout.addWidget(self.cb_port_names)
-        self.cb_port_names.setFixedSize(120, 40)
+        layout         = QVBoxLayout()
+        outer_layout   = QVBoxLayout()
+        box_01         = QGroupBox("COM-port")
+
+        layout.addWidget(self.lbl_baud_rates)
         layout.addWidget(self.cb_baud_rates)
-        self.cb_baud_rates.setFixedSize(120, 40)
+        layout.addWidget(self.lbl_data_bits)
         layout.addWidget(self.cb_data_bits)
-        self.cb_data_bits.setFixedSize(120, 40)
+        layout.addWidget(self.lbl_parity)
         layout.addWidget(self.cb_parity)
-        self.cb_parity.setFixedSize(120, 40)
+        layout.addWidget(self.lbl_stop_bits)
         layout.addWidget(self.cb_stop_bits)
-        self.cb_stop_bits.setFixedSize(120, 40)
+        layout.addWidget(self.lbl_flow_control)
         layout.addWidget(self.cb_flow_control)
+
+        self.cb_baud_rates.setFixedSize(120, 40)
+        self.cb_data_bits.setFixedSize(120, 40)
+        self.cb_parity.setFixedSize(120, 40)
+        self.cb_stop_bits.setFixedSize(120, 40)
         self.cb_flow_control.setFixedSize(120, 40)
 
-        _configure_tab.setLayout(layout)
-        return _configure_tab
+        layout.setAlignment(Qt.AlignHCenter)
+        box_01.setFixedSize(300, 600)
+        box_01.setLayout(layout)
 
-    def decimal_range(self, start, stop, increment):
-        while start < stop:
-            yield start
-            start += increment
+        outer_layout.addWidget(box_01)
+
+        _configure_tab.setLayout(outer_layout)
+        return _configure_tab
 
     def rev_decimal_range(self, start, stop, increment):
         while start > stop:
@@ -334,7 +350,7 @@ class MagnetCFU(QMainWindow):
 
     def serial_control_enable(self, flag):
 
-        self.cb_port_names.setEnabled(flag)
+        self.cb_COM.setEnabled(flag)
         self.cb_baud_rates.setEnabled(flag)
         self.cb_data_bits.setEnabled(flag)
         self.cb_parity.setEnabled(flag)
@@ -487,14 +503,15 @@ class MagnetCFU(QMainWindow):
         #     self.serialControlEnable(True)
 
     def on_btn_set_curr(self):
+        self.status_text.setText("Port opened")
         self.init_port()
-        self.port.waitForReadyRead(self.sb_interval.value())
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
         self.port.write("A007SYST:REM\n".encode())
-        self.status_text.setText(self.receive_port())
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
         self.port.write("A007*CLS\n".encode())
-        self.status_text.setText(self.receive_port())
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
         self.port.write("A007OUTP ON\n".encode())
-        self.status_text.setText(self.receive_port())
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
         self.set_curr()
 
     def read_polarity(self):
@@ -512,8 +529,8 @@ class MagnetCFU(QMainWindow):
         index = 0
         if self.dsb_I_start.value() < 0.0:
             self.port.write("*POL 2\n".encode())
-            self.receive_port()
-            for _i in self.decimal_range(index, abs(self.dsb_I_start.value()) + self.dsb_step.value(), self.dsb_step.value()):
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            for _i in decimal_range(index, abs(self.dsb_I_start.value()) + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
                 a = "A007SOUR:VOLT "
                 b = _i * 10
@@ -525,10 +542,8 @@ class MagnetCFU(QMainWindow):
 
         if self.dsb_I_start.value() > 0.0:
             self.port.write("*POL 1\n".encode())
-            self.receive_port()
-            # polarity = self.port.write("*POL?\n".encode())
-            # if self.read_polarity() == 2:
-            for _i in self.decimal_range(index, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            for _i in decimal_range(index, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
                 a = "A007SOUR:VOLT "
                 b = _i * 10
@@ -537,7 +552,6 @@ class MagnetCFU(QMainWindow):
                 res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 self.port.write(res.encode())
                 self.btn_set_curr.setChecked(False)
-
 
     def on_btn_stop(self):
         pass
@@ -556,13 +570,14 @@ class MagnetCFU(QMainWindow):
                 res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 self.port.write(res.encode())
 
-            self.receive_port()
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.port.write("*POL 1\n".encode())
-            self.receive_port()
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.port.write("A007OUTP OFF\n".encode())
-            self.receive_port()
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.port.write("A007*RST\n".encode())
             self.port.close()
+            self.status_text.setText("Port closed")
             self.btn_reset.setChecked(False)
 
         elif self.dsb_I_start.value() < 0.0:
@@ -577,12 +592,13 @@ class MagnetCFU(QMainWindow):
                 res = f"{a}{b:.3f};{c}{d:.3f}\n"
                 self.port.write(res.encode())
 
-            self.receive_port()
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.port.write("*POL 1\n".encode())
-            self.receive_port()
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.port.write("A007OUTP OFF\n".encode())
             self.port.write("A007*RST\n".encode())
             self.port.close()
+            self.status_text.setText("Port closed")
             self.btn_reset.setChecked(False)
 
     def on_btn_start_meas(self):
@@ -608,9 +624,4 @@ class MagnetCFU(QMainWindow):
         x = pos.x()
         y = pos.y()
         self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
-
-    def magn_read_va(self):
-        self.init_port()
-
-
 
