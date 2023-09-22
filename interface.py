@@ -435,7 +435,7 @@ class MagnetCFU(QMainWindow):
         # self.serial_control_enable(False) # flag on configs serial port
         # self.port.isDataTerminalReady()
         # self.port.readyRead.emit()
-        self.port.waitForReadyRead(self.sb_interval.value() // 4)
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
 
         while self.port.canReadLine():
             text = self.port.readLine().data().decode()
