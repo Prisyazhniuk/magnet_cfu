@@ -4,7 +4,7 @@ import pyqtgraph as pg
 import time
 from random import randint
 
-from PyQt5.QtCore import QTimer, Qt, QIODevice, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import QTimer, Qt, QIODevice, pyqtSlot
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
@@ -21,8 +21,7 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QGroupBox,
     QSpinBox,
-    QComboBox,
-    QAbstractSpinBox
+    QComboBox
 )
 
 
@@ -56,28 +55,8 @@ class MagnetCFU(QMainWindow):
         self.graph_widget = pg.PlotWidget()
         self.timer = QTimer()
         self.timer_mang = QTimer()
-        self.data_glob = ''
-        self.volt_glob = ''
-        self.amper_glob = ''
         self.output_te = ''
-        self.output_idn = ''
         self.buffer = bytearray()
-
-        # Draw a graph
-        # self.timer.setInterval(50)
-        # self.timer.timeout.connect(self.update_plot_data)
-        # self.timer.start()
-        #
-        # self.x = list(range(100))  # 100 time points
-        # self.y = [randint(0, 100) for _ in range(100)]  # 100 data points
-        # pen = pg.mkPen(color=(255, 0, 0), width=15, style=Qt.DotLine)
-        # self.data_line = self.graph_widget.plot(self.x, self.y)
-        # self.graph_widget.setTitle("<span style=\"color:blue;font-size:20pt\">Hysteresis</span>")
-        # styles = {'color': 'r', 'font-size': '20px'}
-        # self.graph_widget.setLabel('left', 'Temperature (°C)', **styles)
-        # self.graph_widget.setLabel('bottom', 'Hour (H)', **styles)
-        # self.graph_widget.scene().sigMouseClicked.connect(self.on_mouse_clicked)
-        # self.graph_widget.showGrid(x=True, y=True)
 
         # Creating interface elements
         # Control tab
@@ -149,9 +128,6 @@ class MagnetCFU(QMainWindow):
         self.le_amper.setPlaceholderText("0.00")
         self.le_amper.setFixedSize(70, 35)
 
-        # self.timer_mang.setInterval(self.sb_interval.value() / 4)
-        # self.timer_mang.timeout.connect(self.on_btn_idn)
-
         self.cb_COM.setFixedWidth(90)
 
         self.btn_IDN.setFixedWidth(70)
@@ -165,11 +141,11 @@ class MagnetCFU(QMainWindow):
         self.lbl_volt.setAlignment(Qt.AlignCenter)
         self.dsb_step.setAlignment(Qt.AlignCenter)
         self.sb_loops.setAlignment(Qt.AlignCenter)
+        self.sb_interval.setAlignment(Qt.AlignCenter)
         self.le_IDN.setAlignment(Qt.AlignCenter)
-        self.le_resistance.setAlignment(Qt.AlignCenter)
         self.le_volt.setAlignment(Qt.AlignCenter)
         self.le_amper.setAlignment(Qt.AlignCenter)
-        self.sb_interval.setAlignment(Qt.AlignCenter)
+        self.le_resistance.setAlignment(Qt.AlignCenter)
 
         # Config Tab
         self.cb_baud_rates    = QComboBox()
@@ -198,21 +174,14 @@ class MagnetCFU(QMainWindow):
         self.cb_flow_control.addItems(['No Flow Control', 'Hardware Control', 'Software Control'])
         self.cb_flow_control.setCurrentIndex(0)
 
-        # Data View parameters
-        # self.serial_data = QLineEdit()
-        # self.serial_data.setReadOnly(1)
-        # self.serial_data.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-
-        # Connect all serial port to comboBox "COM in Hysteresis tab"
+        # Connect all serial port to comboBox "COM in Control tab"
         self.cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
         if self.cb_COM.count() == 0:
             self.cb_COM.addItem("no ports")
 
-        magnet_dir = os.path.dirname(os.path.realpath(__file__))
-        self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
+        # Window setting
         self.setWindowTitle("Magnet CFU")
         self.setContentsMargins(1, 1, 1, 1)
-        # self.setFixedSize(450, 700)
 
         container     = QWidget()
         tabs          = QTabWidget()
@@ -229,19 +198,14 @@ class MagnetCFU(QMainWindow):
 
         hyst_layout.addWidget(self.graph_widget)
 
-        # plt.addLegend()
-        # c1 = plt.plot([1, 3, 2, 4], pen='y', name='Yellow Plot')
-        # c2 = plt.plot([2, 1, 4, 3], pen='b', fillLevel=0, fillBrush=(255, 255, 255, 30), name='Blue Plot')
-        # c3 = plt.addLine(y=4, pen='y')
-
         self.box_4.setFixedSize(500, 400)
         self.box_4.setLayout(hyst_layout)
 
         hyst_outer.addWidget(self.box_4)
         hyst_outer.addWidget(bottom_sp)
 
-        self.setStatusBar(QStatusBar(self))
-        self.status_text = QLabel(self)
+        self.setStatusBar(QStatusBar())
+        self.status_text = QLabel()
         self.statusBar().addWidget(self.status_text)
 
         tabs.addTab(self.control_tab(), "&Control")
@@ -308,8 +272,6 @@ class MagnetCFU(QMainWindow):
         self.btn_reset.clicked.connect(self.on_btn_reset)
         self.btn_start_meas.clicked.connect(self.on_btn_start_meas)
         self.btn_open.clicked.connect(self.on_btn_open)
-        # self.btn_save.clicked.connect(self.on_clicked_btn_save)
-        # self.port.readyRead.connect(self.read_from_port)
 
         self.box_1.setLayout(top_layout)
         self.box_2.setLayout(middle_layout)
@@ -406,19 +368,16 @@ class MagnetCFU(QMainWindow):
             self.port.setDataBits(int(self.cb_data_bits.currentIndex() + 5))
             self.port.setFlowControl(self.cb_flow_control.currentIndex())
             self.port.setStopBits(self.cb_stop_bits.currentIndex())
-        # self.port.close()
-        # self.status_text.setText("Port closed")
-        # self.serialControlEnable(True)
+
         ready = self.port.open(QIODevice.ReadWrite)
         if not ready:
             self.status_text.setText("Port open error")
-            self.btn_IDN.setChecked(False)
             self.serial_control_enable(True)
         else:
             self.status_text.setText("Port opened")
 
+    @pyqtSlot()
     def on_btn_idn(self):
-        # self.timer_mang.start()
         self.init_port()
         self.write_port("A007*IDN?\n")
         self.read_idn_from_port()
@@ -430,11 +389,7 @@ class MagnetCFU(QMainWindow):
         self.read_amper()
         self.port.close()
 
-    @pyqtSlot()
     def read_idn_from_port(self):
-        # self.serial_control_enable(False) # flag on configs serial port
-        # self.port.isDataTerminalReady()
-        # self.port.readyRead.emit()
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
 
         while self.port.canReadLine():
@@ -445,7 +400,6 @@ class MagnetCFU(QMainWindow):
 
     def read_volt(self):
         self.port.waitForReadyRead(self.sb_interval.value())
-        volt = ''
         volt_f = 0.0
 
         while self.port.canReadLine():
@@ -456,7 +410,6 @@ class MagnetCFU(QMainWindow):
 
     def read_amper(self):
         self.port.waitForReadyRead(self.sb_interval.value())
-        amper = ''
         amper_f = 0.0
 
         while self.port.canReadLine():
@@ -466,6 +419,7 @@ class MagnetCFU(QMainWindow):
             amper_f = float(amper)
         self.le_amper.setText("{:.2f}".format(amper_f))
 
+    @pyqtSlot()
     def on_btn_set_curr(self):
         self.status_text.setText("Port opened")
         self.init_port()
@@ -480,7 +434,6 @@ class MagnetCFU(QMainWindow):
 
     def read_polarity(self):
         self.port.waitForReadyRead(self.sb_interval.value())
-        polarity = 0
 
         while self.port.canReadLine():
             polarity = self.port.readLine().data().decode()
@@ -516,9 +469,11 @@ class MagnetCFU(QMainWindow):
                 self.port.write(res.encode())
                 self.btn_set_curr.setChecked(False)
 
+    @pyqtSlot()
     def on_btn_stop(self):
         pass
 
+    @pyqtSlot()
     def on_btn_reset(self):
         self.init_port()
         if self.dsb_I_start.value() > 0:
@@ -562,6 +517,7 @@ class MagnetCFU(QMainWindow):
             self.status_text.setText("Port closed")
             self.btn_reset.setChecked(False)
 
+    @pyqtSlot()
     def on_btn_start_meas(self):
         self.init_port()
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
@@ -650,21 +606,11 @@ class MagnetCFU(QMainWindow):
                 self.btn_start_meas.setChecked(False)
             self.port.close()
 
+    @pyqtSlot()
     def on_btn_open(self):
         pass
 
-    # def on_clicked_btn_save(self):
-    #     print()
-
-    def update_plot_data(self):
-
-        self.x = self.x[1:]  # Remove the first y element.
-        self.x.append(self.x[-1] + 1)  # Add a new value 1 higher than the last.
-
-        self.y = self.y[1:]  # Remove the first
-        self.y.append(randint(0, 100))  # Add a new random value.
-        self.data_line.setData(self.x, self.y)  # Update the data.
-
+    @pyqtSlot()
     def on_mouse_clicked(self, event):
         pos = event.scenePos()
         x = pos.x()
