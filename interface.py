@@ -3,6 +3,8 @@ import sys
 import pyqtgraph as pg
 import time
 from random import randint
+import zhinst.core
+from zhinst.toolkit import Session
 
 from PyQt5.QtCore import QTimer, Qt, QIODevice, pyqtSlot
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
@@ -58,9 +60,15 @@ class MagnetCFU(QMainWindow):
         self.output_te = ''
         self.buffer = bytearray()
 
+        # lock-in setup
+        session = Session('localhost')
+
         # Creating interface elements
         # Control tab
         self.cb_COM         = QComboBox()
+        self.cb_lock_in     = QComboBox()
+
+        self.cb_lock_in.addItems(session.devices.connected())
 
         self.lbl_COM        = QLabel("COM")
         self.lbl_I_start    = QLabel("I start, A")
@@ -71,6 +79,7 @@ class MagnetCFU(QMainWindow):
         self.lbl_resistance = QLabel("Resistance")
         self.lbl_loops      = QLabel("Loops")
         self.lbl_interval   = QLabel("Interval, ms")
+        self.lbl_lock_in    = QLabel("Lock-in")
 
         self.dsb_I_start    = QDoubleSpinBox()
         self.dsb_I_stop     = QDoubleSpinBox()
@@ -99,6 +108,7 @@ class MagnetCFU(QMainWindow):
 
         self.lbl_volt.setFixedSize(45, 40)
         self.lbl_amper.setFixedSize(45, 40)
+        self.lbl_lock_in.setFixedSize(60, 20)
 
         self.dsb_I_start.setRange(-7.5, 7.5)
         self.dsb_I_stop.setRange(-7.5, 7.5)
@@ -238,6 +248,8 @@ class MagnetCFU(QMainWindow):
         top_layout.addWidget(self.cb_COM,            0, 1)
         top_layout.addWidget(self.btn_IDN,           1, 0)
         top_layout.addWidget(self.le_IDN,            1, 1)
+        top_layout.addWidget(self.lbl_lock_in,       0, 2, Qt.AlignCenter)
+        top_layout.addWidget(self.cb_lock_in,        0, 3)
 
         middle_layout.addWidget(self.lbl_I_start,    0, 1, Qt.AlignCenter)
         middle_layout.addWidget(self.lbl_I_stop,     2, 1, Qt.AlignCenter)
