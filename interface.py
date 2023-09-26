@@ -60,15 +60,9 @@ class MagnetCFU(QMainWindow):
         self.output_te = ''
         self.buffer = bytearray()
 
-        # lock-in setup
-        session = Session('localhost')
-
         # Creating interface elements
         # Control tab
         self.cb_COM         = QComboBox()
-        self.cb_lock_in     = QComboBox()
-
-        self.cb_lock_in.addItems(session.devices.connected())
 
         self.lbl_COM        = QLabel("COM")
         self.lbl_I_start    = QLabel("I start, A")
@@ -79,7 +73,6 @@ class MagnetCFU(QMainWindow):
         self.lbl_resistance = QLabel("Resistance")
         self.lbl_loops      = QLabel("Loops")
         self.lbl_interval   = QLabel("Interval, ms")
-        self.lbl_lock_in    = QLabel("Lock-in")
 
         self.dsb_I_start    = QDoubleSpinBox()
         self.dsb_I_stop     = QDoubleSpinBox()
@@ -101,14 +94,13 @@ class MagnetCFU(QMainWindow):
         self.btn_open       = QPushButton("&Open...")
         self.btn_save       = QPushButton("&Save")
 
-        self.box_1          = QGroupBox("Info")
-        self.box_2          = QGroupBox("Value")
-        self.box_3          = QGroupBox("Control")
-        self.box_4          = QGroupBox("Hysteresis")
+        self.box_01          = QGroupBox("Info")
+        self.box_02          = QGroupBox("Value")
+        self.box_03          = QGroupBox("Control")
+        self.box_04          = QGroupBox("Hysteresis")
 
         self.lbl_volt.setFixedSize(45, 40)
         self.lbl_amper.setFixedSize(45, 40)
-        self.lbl_lock_in.setFixedSize(60, 20)
 
         self.dsb_I_start.setRange(-7.5, 7.5)
         self.dsb_I_stop.setRange(-7.5, 7.5)
@@ -138,7 +130,7 @@ class MagnetCFU(QMainWindow):
         self.le_amper.setPlaceholderText("0.00")
         self.le_amper.setFixedSize(70, 35)
 
-        self.cb_COM.setFixedWidth(90)
+        self.cb_COM.setFixedSize(90, 35)
 
         self.btn_IDN.setFixedWidth(70)
         self.btn_set_curr.setCheckable(True)
@@ -208,10 +200,10 @@ class MagnetCFU(QMainWindow):
 
         hyst_layout.addWidget(self.graph_widget)
 
-        self.box_4.setFixedSize(500, 400)
-        self.box_4.setLayout(hyst_layout)
+        self.box_04.setFixedSize(500, 300)
+        self.box_04.setLayout(hyst_layout)
 
-        hyst_outer.addWidget(self.box_4)
+        hyst_outer.addWidget(self.box_04)
         hyst_outer.addWidget(bottom_sp)
 
         self.setStatusBar(QStatusBar())
@@ -220,6 +212,7 @@ class MagnetCFU(QMainWindow):
 
         tabs.addTab(self.control_tab(), "&Control")
         tabs.addTab(self.configure_tab(), "&Configure")
+        tabs.addTab(self.lock_in_tab(), "&Lock-in")
 
         top_layout.addWidget(tabs)
 
@@ -244,12 +237,12 @@ class MagnetCFU(QMainWindow):
         middle_layout  = QGridLayout()
         bottom_layout  = QGridLayout()
 
+        self.box_05    = QGroupBox("COM-port")
+
         top_layout.addWidget(self.lbl_COM,           0, 0, Qt.AlignCenter)
         top_layout.addWidget(self.cb_COM,            0, 1)
         top_layout.addWidget(self.btn_IDN,           1, 0)
-        top_layout.addWidget(self.le_IDN,            1, 1)
-        top_layout.addWidget(self.lbl_lock_in,       0, 2, Qt.AlignCenter)
-        top_layout.addWidget(self.cb_lock_in,        0, 3)
+        top_layout.addWidget(self.le_IDN,            1, 1, 1, 2)
 
         middle_layout.addWidget(self.lbl_I_start,    0, 1, Qt.AlignCenter)
         middle_layout.addWidget(self.lbl_I_stop,     2, 1, Qt.AlignCenter)
@@ -285,15 +278,15 @@ class MagnetCFU(QMainWindow):
         self.btn_start_meas.clicked.connect(self.on_btn_start_meas)
         self.btn_open.clicked.connect(self.on_btn_open)
 
-        self.box_1.setLayout(top_layout)
-        self.box_2.setLayout(middle_layout)
-        self.box_3.setLayout(bottom_layout)
+        self.box_01.setLayout(top_layout)
+        self.box_02.setLayout(middle_layout)
+        self.box_03.setLayout(bottom_layout)
 
         h_outer_layout.addLayout(v_outer_layout)
 
-        v_outer_layout.addWidget(self.box_1)
-        v_outer_layout.addWidget(self.box_2)
-        v_outer_layout.addWidget(self.box_3)
+        v_outer_layout.addWidget(self.box_01)
+        v_outer_layout.addWidget(self.box_02)
+        v_outer_layout.addWidget(self.box_03)
 
         outer_layout.addLayout(v_outer_layout)
         outer_layout.addLayout(h_outer_layout)
@@ -306,7 +299,6 @@ class MagnetCFU(QMainWindow):
 
         layout         = QVBoxLayout()
         outer_layout   = QVBoxLayout()
-        box_01         = QGroupBox("COM-port")
 
         layout.addWidget(self.lbl_baud_rates)
         layout.addWidget(self.cb_baud_rates)
@@ -326,13 +318,95 @@ class MagnetCFU(QMainWindow):
         self.cb_flow_control.setFixedSize(120, 40)
 
         layout.setAlignment(Qt.AlignHCenter)
-        box_01.setFixedSize(300, 600)
-        box_01.setLayout(layout)
 
-        outer_layout.addWidget(box_01)
+        self.box_05.setFixedSize(300, 600)
+        self.box_05.setLayout(layout)
+
+        outer_layout.addWidget(self.box_05)
 
         _configure_tab.setLayout(outer_layout)
         return _configure_tab
+
+    def lock_in_tab(self):
+        _lock_in_tab     = QWidget()
+
+        outer_layout     = QVBoxLayout()
+        v_outer_layout   = QVBoxLayout()
+        h_outer_layout   = QHBoxLayout()
+
+        top_layout       = QGridLayout()
+        middle_layout    = QGridLayout()
+        bottom_layout    = QGridLayout()
+
+        self.le_device  = QLineEdit()
+
+        discovery        = zhinst.core.ziDiscovery()
+
+        discovery.find('mf-dev4999')
+
+        dev_prop         = discovery.get('dev4999')
+        serveraddress    = dev_prop['serveraddress']
+        serverport       = dev_prop['serverport']
+        serverversion    = dev_prop["serverversion"]
+        daq              = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
+
+        # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
+        daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
+        daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
+
+        self.box_06       = QGroupBox("Lock-in")
+        self.box_07       = QGroupBox("Demodulators")
+        self.box_08       = QGroupBox("Signal Inputs")
+
+        self.lbl_wserver  = QLabel("<b>Data Server</b>")
+        self.lbl_device   = QLabel("Device")
+        self.lbl_host     = QLabel("host")
+        self.lbl_sport    = QLabel("Port")
+        self.lbl_sversion = QLabel("Version")
+
+        self.le_host      = QLineEdit(serveraddress)
+        self.le_port      = QLineEdit(str(serverport))
+        self.le_version   = QLineEdit(str(serverversion))
+
+        self.le_device.setText(dev_prop['devicetype'] + " " + dev_prop['deviceid'])
+
+        self.lbl_device.setFixedSize(60, 35)
+        self.lbl_wserver.setFixedHeight(35)
+        self.lbl_sversion.setFixedHeight(35)
+
+        self.le_host.setFixedSize(70, 35)
+        self.le_device.setFixedSize(100, 35)
+        self.le_port.setFixedSize(70, 35)
+        self.le_version.setFixedSize(90, 35)
+
+        self.le_host.setDisabled(True)
+        self.le_port.setDisabled(True)
+        self.le_version.setDisabled(True)
+        self.le_device.setDisabled(True)
+
+        top_layout.addWidget(self.lbl_wserver,       0, 0)
+        top_layout.addWidget(self.lbl_sversion,      1, 0)
+        top_layout.addWidget(self.lbl_host,          2, 0)
+        top_layout.addWidget(self.lbl_sport,         3, 0)
+        top_layout.addWidget(self.lbl_device,        4, 0)
+
+        top_layout.setAlignment(Qt.AlignLeft)
+
+        top_layout.addWidget(self.le_version,        1, 1)
+        top_layout.addWidget(self.le_host,           2, 1)
+        top_layout.addWidget(self.le_port,           3, 1)
+        top_layout.addWidget(self.le_device,         4, 1)
+
+        self.box_06.setLayout(top_layout)
+        self.box_07.setLayout(middle_layout)
+        self.box_08.setLayout(bottom_layout)
+
+        outer_layout.addWidget(self.box_06)
+        outer_layout.addWidget(self.box_07)
+        outer_layout.addWidget(self.box_08)
+
+        _lock_in_tab.setLayout(outer_layout)
+        return _lock_in_tab
 
     def serial_control_enable(self, flag):
         self.cb_COM.setEnabled(flag)
