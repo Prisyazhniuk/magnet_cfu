@@ -23,7 +23,9 @@ from PyQt5.QtWidgets import (
     QDoubleSpinBox,
     QGroupBox,
     QSpinBox,
-    QComboBox
+    QComboBox,
+    QSplitter,
+    QFrame
 )
 
 
@@ -338,7 +340,10 @@ class MagnetCFU(QMainWindow):
         middle_layout    = QGridLayout()
         bottom_layout    = QGridLayout()
 
-        self.le_device  = QLineEdit()
+        self.le_device   = QLineEdit()
+        self.le_host     = QLineEdit()
+        self.le_port     = QLineEdit()
+        self.le_version  = QLineEdit()
 
         discovery        = zhinst.core.ziDiscovery()
 
@@ -348,12 +353,25 @@ class MagnetCFU(QMainWindow):
         serveraddress    = dev_prop['serveraddress']
         serverport       = dev_prop['serverport']
         serverversion    = dev_prop["serverversion"]
-        daq              = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
 
-        # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
-        daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
-        daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
-        # daq.setInt('/dev4999/demods/0/enable', 1) # data transfer streaming
+        # zhinst.core.ziDAQServer.help('/ZI/branch')
+
+        if serveraddress == "127.0.0.1":
+            daq = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
+
+            # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
+            daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
+            daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
+            # daq.setInt('/dev4999/demods/0/enable', 1) # data transfer streaming
+
+            self.le_host.setText(serveraddress)
+            self.le_port.setText(str(serverport))
+            self.le_version.setText(str(serverversion))
+
+            self.le_device.setText(dev_prop['devicetype'] + " " + dev_prop['deviceid'])
+
+        else:
+            self.status_text.setText("MFLI not found")
 
         self.box_06       = QGroupBox("Lock-in")
         self.box_07       = QGroupBox("Demodulators")
@@ -366,20 +384,18 @@ class MagnetCFU(QMainWindow):
         self.lbl_sport    = QLabel("Port")
         self.lbl_sversion = QLabel("Version")
 
-        self.le_host      = QLineEdit(serveraddress)
-        self.le_port      = QLineEdit(str(serverport))
-        self.le_version   = QLineEdit(str(serverversion))
-
-        self.le_device.setText(dev_prop['devicetype'] + " " + dev_prop['deviceid'])
-
-        self.lbl_device.setFixedSize(60, 35)
+        self.lbl_device.setFixedHeight(35)
         self.lbl_wserver.setFixedHeight(35)
         self.lbl_sversion.setFixedHeight(35)
+        self.lbl_host.adjustSize()
+        self.lbl_sport.adjustSize()
+
+        self.box_07.setFixedHeight(400)
 
         self.le_host.setFixedSize(70, 35)
         self.le_device.setFixedSize(100, 35)
         self.le_port.setFixedSize(70, 35)
-        self.le_version.setFixedSize(90, 35)
+        self.le_version.setFixedSize(100, 35)
 
         self.le_host.setDisabled(True)
         self.le_port.setDisabled(True)
@@ -406,6 +422,14 @@ class MagnetCFU(QMainWindow):
         self.cb_order     = QComboBox()
         self.cb_trigger   = QComboBox()
 
+        self.le_freq.setFixedHeight(30)
+        self.le_transfer.setFixedHeight(30)
+        self.le_phase.setFixedHeight(30)
+        self.le_tc.setFixedHeight(30)
+
+        self.cb_order.setFixedHeight(30)
+        self.cb_trigger.setFixedHeight(30)
+
         # Signal Inputs GroupBox
         self.lbl_range   = QLabel("Range")
         self.lbl_scaling = QLabel("Scaling")
@@ -418,54 +442,54 @@ class MagnetCFU(QMainWindow):
         self.btn_50      = QPushButton("50 Ω")
         self.btn_float   = QPushButton("Float")
 
-        self.btn_ac.setFixedSize(40, 25)
-        self.btn_50.setFixedSize(40, 25)
-        self.btn_float.setFixedSize(50, 25)
-        self.btn_range.setFixedSize(50, 25)
+        self.btn_ac.setFixedWidth(40)
+        self.btn_50.setFixedWidth(50)
+        self.btn_float.setFixedWidth(50)
+        self.btn_range.setFixedWidth(50)
 
         self.le_range.setFixedSize(50, 30)
         self.le_scaling.setFixedSize(50, 30)
 
-        top_layout.addWidget(self.lbl_wserver,       0, 0)
-        top_layout.addWidget(self.lbl_sversion,      1, 0)
-        top_layout.addWidget(self.lbl_host,          2, 0)
-        top_layout.addWidget(self.lbl_sport,         3, 0)
-        top_layout.addWidget(self.lbl_device,        4, 0)
+        top_layout.addWidget(self.lbl_wserver,       0, 0, 1, 0)
+        top_layout.addWidget(self.lbl_sversion,      2, 0)
+        top_layout.addWidget(self.lbl_host,          1, 2)
+        top_layout.addWidget(self.lbl_sport,         2, 2)
+        top_layout.addWidget(self.lbl_device,        1, 0)
 
-        top_layout.addWidget(self.le_version,        1, 1)
-        top_layout.addWidget(self.le_host,           2, 1)
-        top_layout.addWidget(self.le_port,           3, 1)
-        top_layout.addWidget(self.le_device,         4, 1)
+        top_layout.addWidget(self.le_version,        2, 1)
+        top_layout.addWidget(self.le_host,           1, 3)
+        top_layout.addWidget(self.le_port,           2, 3)
+        top_layout.addWidget(self.le_device,         1, 1)
 
         top_layout.setAlignment(Qt.AlignLeft)
 
         middle_layout.addWidget(self.lbl_freq,       0, 0)
         middle_layout.addWidget(self.lbl_phase,      0, 1)
-        middle_layout.addWidget(self.lbl_transfer,   0, 6)
-        middle_layout.addWidget(self.lbl_trigger,    0, 7)
-        middle_layout.addWidget(self.lbl_sig_in,     0, 3)
-        middle_layout.addWidget(self.lbl_tc,         0, 5)
-        middle_layout.addWidget(self.lbl_order,      0, 4)
+        middle_layout.addWidget(self.lbl_transfer,   2, 1)
+        middle_layout.addWidget(self.lbl_trigger,    6, 0)
+        # middle_layout.addWidget(self.lbl_sig_in,     0, 3)
+        middle_layout.addWidget(self.lbl_tc,         4, 0)
+        middle_layout.addWidget(self.lbl_order,      2, 0)
 
         middle_layout.addWidget(self.le_phase,       1, 1)
         middle_layout.addWidget(self.le_freq,        1, 0)
-        middle_layout.addWidget(self.le_transfer,    1, 6)
-        middle_layout.addWidget(self.le_tc,          1, 5)
+        middle_layout.addWidget(self.le_transfer,    3, 1)
+        middle_layout.addWidget(self.le_tc,          5, 0)
 
-        middle_layout.addWidget(self.cb_trigger,     1, 7)
-        middle_layout.addWidget(self.cb_order,       1, 4)
+        middle_layout.addWidget(self.cb_trigger,     7, 0)
+        middle_layout.addWidget(self.cb_order,       3, 0)
 
         middle_layout.addWidget(self.btn_phase,      1, 2)
-        middle_layout.addWidget(self.btn_transfer,   1, 6)
+        middle_layout.addWidget(self.btn_transfer,   3, 2)
 
-        bottom_layout.addWidget(self.lbl_range, 0, 0)
-        bottom_layout.addWidget(self.le_range, 0, 1)
-        bottom_layout.addWidget(self.btn_range, 0, 2)
+        bottom_layout.addWidget(self.lbl_range,   0, 0)
+        bottom_layout.addWidget(self.le_range,    0, 1)
+        bottom_layout.addWidget(self.btn_range,   0, 2)
         bottom_layout.addWidget(self.lbl_scaling, 1, 0)
-        bottom_layout.addWidget(self.le_scaling, 1, 1)
-        bottom_layout.addWidget(self.btn_ac, 2, 0)
-        bottom_layout.addWidget(self.btn_50, 2, 2)
-        bottom_layout.addWidget(self.btn_float, 2, 1)
+        bottom_layout.addWidget(self.le_scaling,  1, 1)
+        bottom_layout.addWidget(self.btn_ac,      2, 0)
+        bottom_layout.addWidget(self.btn_50,      2, 2)
+        bottom_layout.addWidget(self.btn_float,   2, 1)
 
         bottom_layout.setAlignment(Qt.AlignLeft)
 
@@ -473,9 +497,11 @@ class MagnetCFU(QMainWindow):
         self.box_07.setLayout(middle_layout)
         self.box_08.setLayout(bottom_layout)
 
-        outer_layout.addWidget(self.box_06)
+        h_outer_layout.addWidget(self.box_06)
+        h_outer_layout.addWidget(self.box_08)
+
+        outer_layout.addLayout(h_outer_layout)
         outer_layout.addWidget(self.box_07)
-        outer_layout.addWidget(self.box_08)
 
         _lock_in_tab.setLayout(outer_layout)
         return _lock_in_tab
