@@ -353,11 +353,13 @@ class MagnetCFU(QMainWindow):
         # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
         daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
         daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
+        # daq.setInt('/dev4999/demods/0/enable', 1) # data transfer streaming
 
         self.box_06       = QGroupBox("Lock-in")
         self.box_07       = QGroupBox("Demodulators")
         self.box_08       = QGroupBox("Signal Inputs")
 
+        # Lock-in GroupBox
         self.lbl_wserver  = QLabel("<b>Data Server</b>")
         self.lbl_device   = QLabel("Device")
         self.lbl_host     = QLabel("host")
@@ -384,18 +386,88 @@ class MagnetCFU(QMainWindow):
         self.le_version.setDisabled(True)
         self.le_device.setDisabled(True)
 
+        # Demodulators GroupBox
+        self.lbl_freq     = QLabel("Freq (Hz)")
+        self.lbl_sig_in   = QLabel("Sig In")
+        self.lbl_phase    = QLabel("Phase (deg)")
+        self.lbl_transfer = QLabel("Data Transfer")
+        self.lbl_trigger  = QLabel("Trigger")
+        self.lbl_tc       = QLabel("TC")
+        self.lbl_order    = QLabel("Order")
+
+        self.le_freq      = QLineEdit()
+        self.le_tc        = QLineEdit()
+        self.le_phase     = QLineEdit()
+        self.le_transfer  = QLineEdit()
+
+        self.btn_phase    = QPushButton("Auto")
+        self.btn_transfer = QPushButton("Auto")
+
+        self.cb_order     = QComboBox()
+        self.cb_trigger   = QComboBox()
+
+        # Signal Inputs GroupBox
+        self.lbl_range   = QLabel("Range")
+        self.lbl_scaling = QLabel("Scaling")
+
+        self.le_range    = QLineEdit()
+        self.le_scaling  = QLineEdit()
+
+        self.btn_range   = QPushButton("Auto")
+        self.btn_ac      = QPushButton("AC")
+        self.btn_50      = QPushButton("50 Ω")
+        self.btn_float   = QPushButton("Float")
+
+        self.btn_ac.setFixedSize(40, 25)
+        self.btn_50.setFixedSize(40, 25)
+        self.btn_float.setFixedSize(50, 25)
+        self.btn_range.setFixedSize(50, 25)
+
+        self.le_range.setFixedSize(50, 30)
+        self.le_scaling.setFixedSize(50, 30)
+
         top_layout.addWidget(self.lbl_wserver,       0, 0)
         top_layout.addWidget(self.lbl_sversion,      1, 0)
         top_layout.addWidget(self.lbl_host,          2, 0)
         top_layout.addWidget(self.lbl_sport,         3, 0)
         top_layout.addWidget(self.lbl_device,        4, 0)
 
-        top_layout.setAlignment(Qt.AlignLeft)
-
         top_layout.addWidget(self.le_version,        1, 1)
         top_layout.addWidget(self.le_host,           2, 1)
         top_layout.addWidget(self.le_port,           3, 1)
         top_layout.addWidget(self.le_device,         4, 1)
+
+        top_layout.setAlignment(Qt.AlignLeft)
+
+        middle_layout.addWidget(self.lbl_freq,       0, 0)
+        middle_layout.addWidget(self.lbl_phase,      0, 1)
+        middle_layout.addWidget(self.lbl_transfer,   0, 6)
+        middle_layout.addWidget(self.lbl_trigger,    0, 7)
+        middle_layout.addWidget(self.lbl_sig_in,     0, 3)
+        middle_layout.addWidget(self.lbl_tc,         0, 5)
+        middle_layout.addWidget(self.lbl_order,      0, 4)
+
+        middle_layout.addWidget(self.le_phase,       1, 1)
+        middle_layout.addWidget(self.le_freq,        1, 0)
+        middle_layout.addWidget(self.le_transfer,    1, 6)
+        middle_layout.addWidget(self.le_tc,          1, 5)
+
+        middle_layout.addWidget(self.cb_trigger,     1, 7)
+        middle_layout.addWidget(self.cb_order,       1, 4)
+
+        middle_layout.addWidget(self.btn_phase,      1, 2)
+        middle_layout.addWidget(self.btn_transfer,   1, 6)
+
+        bottom_layout.addWidget(self.lbl_range, 0, 0)
+        bottom_layout.addWidget(self.le_range, 0, 1)
+        bottom_layout.addWidget(self.btn_range, 0, 2)
+        bottom_layout.addWidget(self.lbl_scaling, 1, 0)
+        bottom_layout.addWidget(self.le_scaling, 1, 1)
+        bottom_layout.addWidget(self.btn_ac, 2, 0)
+        bottom_layout.addWidget(self.btn_50, 2, 2)
+        bottom_layout.addWidget(self.btn_float, 2, 1)
+
+        bottom_layout.setAlignment(Qt.AlignLeft)
 
         self.box_06.setLayout(top_layout)
         self.box_07.setLayout(middle_layout)
