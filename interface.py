@@ -334,7 +334,8 @@ class MagnetCFU(QMainWindow):
 
         outer_layout     = QVBoxLayout()
         v_outer_layout   = QVBoxLayout()
-        h_outer_layout   = QHBoxLayout()
+        h1_outer_layout  = QHBoxLayout()
+        h2_outer_layout  = QHBoxLayout()
 
         top_layout       = QGridLayout()
         middle_layout    = QGridLayout()
@@ -354,9 +355,23 @@ class MagnetCFU(QMainWindow):
         serverport       = dev_prop['serverport']
         serverversion    = dev_prop["serverversion"]
 
-        # zhinst.core.ziDAQServer.help('/ZI/branch')
+        if serveraddress == "172.16.0.35":
+            self.status_text.setText("MFLI connected global")
+            daq = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
 
-        if serveraddress == "127.0.0.1":
+            # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
+            daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
+            daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
+            # daq.setInt('/dev4999/demods/0/enable', 1) # data transfer streaming
+
+            self.le_host.setText(serveraddress)
+            self.le_port.setText(str(serverport))
+            self.le_version.setText(str(serverversion))
+
+            self.le_device.setText(dev_prop['devicetype'] + " " + dev_prop['deviceid'])
+
+        elif serveraddress == "127.0.0.1":
+            self.status_text.setText("MFLI connected local")
             daq = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
 
             # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
@@ -376,6 +391,7 @@ class MagnetCFU(QMainWindow):
         self.box_06       = QGroupBox("Lock-in")
         self.box_07       = QGroupBox("Demodulators")
         self.box_08       = QGroupBox("Signal Inputs")
+        self.box_09       = QGroupBox("Signal Outputs")
 
         # Lock-in GroupBox
         self.lbl_wserver  = QLabel("<b>Data Server</b>")
@@ -392,10 +408,10 @@ class MagnetCFU(QMainWindow):
 
         self.box_07.setFixedHeight(400)
 
-        self.le_host.setFixedSize(70, 35)
-        self.le_device.setFixedSize(100, 35)
-        self.le_port.setFixedSize(70, 35)
-        self.le_version.setFixedSize(100, 35)
+        self.le_host.setFixedHeight(35)
+        self.le_device.setFixedHeight(35)
+        self.le_port.setFixedHeight(35)
+        self.le_version.setFixedHeight(35)
 
         self.le_host.setDisabled(True)
         self.le_port.setDisabled(True)
@@ -450,6 +466,16 @@ class MagnetCFU(QMainWindow):
         self.le_range.setFixedSize(50, 30)
         self.le_scaling.setFixedSize(50, 30)
 
+        # Signal Outputs GroupBox
+        self.lbl_orange     = QLabel("Range")
+        self.lbl_amp        = QLabel("Amp (Vpk")
+
+        self.le_orange      = QLineEdit()
+        self.le_amp         = QLineEdit()
+
+        self.btn_output_sig = QPushButton("On                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ")
+        self.btn_auto_amp   = QPushButton("Auto")
+
         top_layout.addWidget(self.lbl_wserver,       0, 0, 1, 0)
         top_layout.addWidget(self.lbl_sversion,      2, 0)
         top_layout.addWidget(self.lbl_host,          1, 2)
@@ -497,11 +523,14 @@ class MagnetCFU(QMainWindow):
         self.box_07.setLayout(middle_layout)
         self.box_08.setLayout(bottom_layout)
 
-        h_outer_layout.addWidget(self.box_06)
-        h_outer_layout.addWidget(self.box_08)
+        h1_outer_layout.addWidget(self.box_06)
+        h1_outer_layout.addWidget(self.box_08)
 
-        outer_layout.addLayout(h_outer_layout)
-        outer_layout.addWidget(self.box_07)
+        h2_outer_layout.addWidget(self.box_07)
+        h2_outer_layout.addWidget(self.box_09)
+
+        outer_layout.addLayout(h1_outer_layout)
+        outer_layout.addLayout(h2_outer_layout)
 
         _lock_in_tab.setLayout(outer_layout)
         return _lock_in_tab
