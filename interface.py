@@ -184,6 +184,8 @@ class MagnetCFU(QMainWindow):
             self.cb_COM.addItem("no ports")
 
         # Window setting
+        magnet_dir = os.path.dirname(os.path.realpath(__file__))
+        self.setWindowIcon(QIcon(magnet_dir + os.path.sep + 'icons\\01.png'))
         self.setWindowTitle("Magnet CFU")
         self.setContentsMargins(1, 1, 1, 1)
 
@@ -334,12 +336,14 @@ class MagnetCFU(QMainWindow):
 
         outer_layout     = QVBoxLayout()
         v_outer_layout   = QVBoxLayout()
+        v_bottom_layout  = QVBoxLayout()
         h1_outer_layout  = QHBoxLayout()
         h2_outer_layout  = QHBoxLayout()
 
         top_layout       = QGridLayout()
         middle_layout    = QGridLayout()
         bottom_layout    = QGridLayout()
+        middle_rlayout   = QGridLayout()
 
         self.le_device   = QLineEdit()
         self.le_host     = QLineEdit()
@@ -392,6 +396,7 @@ class MagnetCFU(QMainWindow):
         self.box_07       = QGroupBox("Demodulators")
         self.box_08       = QGroupBox("Signal Inputs")
         self.box_09       = QGroupBox("Signal Outputs")
+        self.box_10       = QGroupBox()
 
         # Lock-in GroupBox
         self.lbl_wserver  = QLabel("<b>Data Server</b>")
@@ -445,6 +450,8 @@ class MagnetCFU(QMainWindow):
 
         self.cb_order.setFixedHeight(30)
         self.cb_trigger.setFixedHeight(30)
+        self.cb_trigger.addItems(['Continuous', 'Trigger In 1', 'Trigger In 2', 'Trigger In 1|2'])
+        self.cb_order.addItems(['1', '2', '3', '4', '5', '6', '7', '8'])
 
         # Signal Inputs GroupBox
         self.lbl_range   = QLabel("Range")
@@ -462,19 +469,26 @@ class MagnetCFU(QMainWindow):
         self.btn_50.setFixedWidth(50)
         self.btn_float.setFixedWidth(50)
         self.btn_range.setFixedWidth(50)
+        self.btn_ac.setCheckable(True)
+        self.btn_ac.setDefault(True)
 
         self.le_range.setFixedSize(50, 30)
         self.le_scaling.setFixedSize(50, 30)
 
         # Signal Outputs GroupBox
         self.lbl_orange     = QLabel("Range")
-        self.lbl_amp        = QLabel("Amp (Vpk")
+        self.lbl_amp        = QLabel("Amp (Vpk)")
 
-        self.le_orange      = QLineEdit()
+        self.cb_orange      = QComboBox()
         self.le_amp         = QLineEdit()
 
-        self.btn_output_sig = QPushButton("On                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 ")
+        self.btn_output_sig = QPushButton("On")
         self.btn_auto_amp   = QPushButton("Auto")
+
+        self.le_amp.setText("100.0m")
+        self.cb_orange.addItems(['10 mV', '100 mV', '1 V', '10 V'])
+        self.cb_orange.setCurrentIndex(2)
+        self.le_amp.setAlignment(Qt.AlignHCenter)
 
         top_layout.addWidget(self.lbl_wserver,       0, 0, 1, 0)
         top_layout.addWidget(self.lbl_sversion,      2, 0)
@@ -508,26 +522,38 @@ class MagnetCFU(QMainWindow):
         middle_layout.addWidget(self.btn_phase,      1, 2)
         middle_layout.addWidget(self.btn_transfer,   3, 2)
 
-        bottom_layout.addWidget(self.lbl_range,   0, 0)
-        bottom_layout.addWidget(self.le_range,    0, 1)
-        bottom_layout.addWidget(self.btn_range,   0, 2)
-        bottom_layout.addWidget(self.lbl_scaling, 1, 0)
-        bottom_layout.addWidget(self.le_scaling,  1, 1)
-        bottom_layout.addWidget(self.btn_ac,      2, 0)
-        bottom_layout.addWidget(self.btn_50,      2, 2)
-        bottom_layout.addWidget(self.btn_float,   2, 1)
+        bottom_layout.addWidget(self.lbl_range,      0, 0)
+        bottom_layout.addWidget(self.le_range,       0, 1)
+        bottom_layout.addWidget(self.btn_range,      0, 2)
+        bottom_layout.addWidget(self.lbl_scaling,    1, 0)
+        bottom_layout.addWidget(self.le_scaling,     1, 1)
+        bottom_layout.addWidget(self.btn_ac,         2, 0)
+        bottom_layout.addWidget(self.btn_50,         2, 2)
+        bottom_layout.addWidget(self.btn_float,      2, 1)
+
+        # Output Sig
+        middle_rlayout.addWidget(self.lbl_orange,     0, 1, Qt.AlignRight)
+        middle_rlayout.addWidget(self.cb_orange,      0, 2)
+        middle_rlayout.addWidget(self.lbl_amp,        1, 0)
+        middle_rlayout.addWidget(self.le_amp,         1, 1)
+        middle_rlayout.addWidget(self.btn_output_sig, 0, 0)
+        middle_rlayout.addWidget(self.btn_auto_amp,   1, 2)
 
         bottom_layout.setAlignment(Qt.AlignLeft)
 
         self.box_06.setLayout(top_layout)
         self.box_07.setLayout(middle_layout)
+        self.box_09.setLayout(middle_rlayout)
         self.box_08.setLayout(bottom_layout)
 
         h1_outer_layout.addWidget(self.box_06)
         h1_outer_layout.addWidget(self.box_08)
 
+        v_bottom_layout.addWidget(self.box_09)
+        v_bottom_layout.addWidget(self.box_10)
+
         h2_outer_layout.addWidget(self.box_07)
-        h2_outer_layout.addWidget(self.box_09)
+        h2_outer_layout.addLayout(v_bottom_layout)
 
         outer_layout.addLayout(h1_outer_layout)
         outer_layout.addLayout(h2_outer_layout)
