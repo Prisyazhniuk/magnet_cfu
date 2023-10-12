@@ -434,8 +434,8 @@ class MagnetCFU(QMainWindow):
         self.lbl_order    = QLabel("Order")
 
         self.le_freq      = QLineEdit()
-        self.le_tc        = QLineEdit()
-        self.le_phase     = QLineEdit()
+        self.le_tc        = QLineEdit("0.1")
+        self.le_phase     = QLineEdit("90.0")
         self.le_transfer  = QLineEdit("1674")
         self.daq.setInt('/dev4999/demods/0/rate', int(self.le_transfer.text()))
 
@@ -446,10 +446,10 @@ class MagnetCFU(QMainWindow):
         self.cb_trigger   = QComboBox()
 
         self.le_freq.setFixedHeight(30)
+        self.le_freq.setDisabled(True)
         self.le_transfer.setFixedHeight(30)
         self.le_transfer.setAlignment(Qt.AlignRight)
         self.le_phase.setFixedHeight(30)
-        self.le_phase.setText("90.0")
         self.le_tc.setFixedHeight(30)
         self.le_phase.setAlignment(Qt.AlignRight)
 
@@ -504,6 +504,13 @@ class MagnetCFU(QMainWindow):
         self.cb_orange.setFixedHeight(30)
 
         # Connect lock-in button
+        self.le_range.textChanged.connect(self.changed_range)
+        self.le_scaling.textChanged.connect(self.changed_scaling)
+        self.le_phase.textChanged.connect(self.changed_phase)
+        self.le_transfer.textChanged.connect(self.changed_transfer)
+        self.cb_order.currentIndexChanged.connect(self.changed_order)
+        self.le_tc.textChanged.connect(self.changed_tc)
+
         self.btn_float.clicked.connect(self.on_clicked_btn_float)
         self.btn_ac.clicked.connect(self.on_clicked_btn_ac)
         self.btn_50.clicked.connect(self.on_clicked_btn_50)
@@ -607,6 +614,24 @@ class MagnetCFU(QMainWindow):
             self.daq.setInt('/dev4999/demods/0/enable', 1)
         elif not self.btn_transfer.isChecked():
             self.daq.setInt('/dev4999/demods/0/enable', 0)
+
+    def changed_range(self):
+        self.daq.setDouble('/dev4999/sigins/0/range', float(self.le_range.text()))
+
+    def changed_scaling(self):
+        self.daq.setDouble('/dev4999/sigins/0/scaling', float(self.le_scaling.text()))
+
+    def changed_transfer(self):
+        self.daq.setDouble('/dev4999/demods/0/rate', float(self.le_transfer.text()))
+
+    def changed_phase(self):
+        self.daq.setDouble('/dev4999/demods/0/phaseshift', float(self.le_phase.text()))
+
+    def changed_order(self):
+        self.daq.setInt('/dev4999/demods/0/order', int(self.cb_order.currentText()))
+
+    def changed_tc(self):
+        self.daq.setDouble('/dev4999/demods/0/timeconstant', float(self.le_tc.text()))
 
     def serial_control_enable(self, flag):
         self.cb_COM.setEnabled(flag)
