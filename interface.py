@@ -62,6 +62,16 @@ class MagnetCFU(QMainWindow):
         self.output_te = ''
         self.buffer = bytearray()
 
+        self.discovery        = zhinst.core.ziDiscovery()
+
+        self.discovery.find('mf-dev4999')
+
+        self.dev_prop         = self.discovery.get('dev4999')
+        self.serveraddress    = self.dev_prop['serveraddress']
+        self.serverport       = self.dev_prop['serverport']
+        self.serverversion    = self.dev_prop["serverversion"]
+        self.daq = zhinst.core.ziDAQServer(self.serveraddress, self.serverport, 6)
+
         # Creating interface elements
         # Control tab
         self.cb_COM         = QComboBox()
@@ -350,29 +360,20 @@ class MagnetCFU(QMainWindow):
         self.le_port     = QLineEdit()
         self.le_version  = QLineEdit()
 
-        discovery        = zhinst.core.ziDiscovery()
 
-        discovery.find('mf-dev4999')
-
-        dev_prop         = discovery.get('dev4999')
-        serveraddress    = dev_prop['serveraddress']
-        serverport       = dev_prop['serverport']
-        serverversion    = dev_prop["serverversion"]
-
-        if serveraddress == "172.16.0.35":
+        if self.serveraddress == "172.16.0.35":
             self.status_text.setText("MFLI connected global")
-            daq = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
 
             # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
-            daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
-            daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
+            self.daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
+            self.daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
             # daq.setInt('/dev4999/demods/0/enable', 1) # data transfer streaming
 
-            self.le_host.setText(serveraddress)
-            self.le_port.setText(str(serverport))
-            self.le_version.setText(str(serverversion))
+            self.le_host.setText(self.serveraddress)
+            self.le_port.setText(str(self.serverport))
+            self.le_version.setText(str(self.serverversion))
 
-            self.le_device.setText(dev_prop['devicetype'] + " " + dev_prop['deviceid'])
+            self.le_device.setText(self.dev_prop['devicetype'] + " " + self.dev_prop['deviceid'])
 
         elif serveraddress == "127.0.0.1":
             self.status_text.setText("MFLI connected local")
@@ -435,7 +436,8 @@ class MagnetCFU(QMainWindow):
         self.le_freq      = QLineEdit()
         self.le_tc        = QLineEdit()
         self.le_phase     = QLineEdit()
-        self.le_transfer  = QLineEdit()
+        self.le_transfer  = QLineEdit("1674")
+        self.daq.setInt('/dev4999/demods/0/rate', int(self.le_transfer.text()))
 
         self.btn_phase    = QPushButton("Auto")
         self.btn_transfer = QPushButton("Auto")
@@ -445,20 +447,26 @@ class MagnetCFU(QMainWindow):
 
         self.le_freq.setFixedHeight(30)
         self.le_transfer.setFixedHeight(30)
+        self.le_transfer.setAlignment(Qt.AlignRight)
         self.le_phase.setFixedHeight(30)
+        self.le_phase.setText("90.0")
         self.le_tc.setFixedHeight(30)
+        self.le_phase.setAlignment(Qt.AlignRight)
 
         self.cb_order.setFixedHeight(30)
         self.cb_trigger.setFixedHeight(30)
         self.cb_trigger.addItems(['Continuous', 'Trigger In 1', 'Trigger In 2', 'Trigger In 1|2'])
         self.cb_order.addItems(['1', '2', '3', '4', '5', '6', '7', '8'])
+        self.cb_order.setCurrentIndex(3)
+
+        self.btn_transfer.setCheckable(True)
 
         # Signal Inputs GroupBox
         self.lbl_range   = QLabel("Range")
         self.lbl_scaling = QLabel("Scaling")
 
-        self.le_range    = QLineEdit()
-        self.le_scaling  = QLineEdit()
+        self.le_range    = QLineEdit("3.0")
+        self.le_scaling  = QLineEdit("1.0")
 
         self.btn_range   = QPushButton("Auto")
         self.btn_ac      = QPushButton("AC")
@@ -469,26 +477,38 @@ class MagnetCFU(QMainWindow):
         self.btn_50.setFixedWidth(50)
         self.btn_float.setFixedWidth(50)
         self.btn_range.setFixedWidth(50)
+        self.btn_float.setCheckable(True)
+        self.btn_50.setCheckable(True)
         self.btn_ac.setCheckable(True)
-        self.btn_ac.setDefault(True)
 
         self.le_range.setFixedSize(50, 30)
+        self.le_range.setAlignment(Qt.AlignRight)
         self.le_scaling.setFixedSize(50, 30)
+        self.le_scaling.setAlignment(Qt.AlignRight)
 
         # Signal Outputs GroupBox
         self.lbl_orange     = QLabel("Range")
         self.lbl_amp        = QLabel("Amp (Vpk)")
 
         self.cb_orange      = QComboBox()
-        self.le_amp         = QLineEdit()
+        self.le_amp         = QLineEdit("100.0m")
 
         self.btn_output_sig = QPushButton("On")
         self.btn_auto_amp   = QPushButton("Auto")
 
-        self.le_amp.setText("100.0m")
+        self.le_amp.setFixedHeight(30)
+        self.le_amp.setAlignment(Qt.AlignRight)
+
         self.cb_orange.addItems(['10 mV', '100 mV', '1 V', '10 V'])
         self.cb_orange.setCurrentIndex(2)
-        self.le_amp.setAlignment(Qt.AlignHCenter)
+        self.cb_orange.setFixedHeight(30)
+
+        # Connect lock-in button
+        self.btn_float.clicked.connect(self.on_clicked_btn_float)
+        self.btn_ac.clicked.connect(self.on_clicked_btn_ac)
+        self.btn_50.clicked.connect(self.on_clicked_btn_50)
+        self.btn_range.clicked.connect(self.on_clicked_btn_range)
+        self.btn_transfer.clicked.connect(self.on_clicked_btn_transfer)
 
         top_layout.addWidget(self.lbl_wserver,       0, 0, 1, 0)
         top_layout.addWidget(self.lbl_sversion,      2, 0)
@@ -560,6 +580,33 @@ class MagnetCFU(QMainWindow):
 
         _lock_in_tab.setLayout(outer_layout)
         return _lock_in_tab
+
+    def on_clicked_btn_float(self):
+        if self.btn_float.isChecked():
+            self.daq.setInt('/dev4999/sigins/0/float', 1)
+        elif not self.btn_float.isChecked():
+            self.daq.setInt('/dev4999/sigins/0/float', 0)
+
+    def on_clicked_btn_50(self):
+        if self.btn_50.isChecked():
+            self.daq.setInt('/dev4999/sigins/0/imp50', 1)
+        elif not self.btn_50.isChecked():
+            self.daq.setInt('/dev4999/sigins/0/imp50', 0)
+
+    def on_clicked_btn_ac(self):
+        if self.btn_ac.isChecked():
+            self.daq.setInt('/dev4999/sigins/0/ac', 1)
+        elif not self.btn_ac.isChecked():
+            self.daq.setInt('/dev4999/sigins/0/ac', 0)
+
+    def on_clicked_btn_range(self):
+        self.daq.setInt('/dev4999/sigins/0/autorange', 1)
+
+    def on_clicked_btn_transfer(self):
+        if self.btn_transfer.isChecked():
+            self.daq.setInt('/dev4999/demods/0/enable', 1)
+        elif not self.btn_transfer.isChecked():
+            self.daq.setInt('/dev4999/demods/0/enable', 0)
 
     def serial_control_enable(self, flag):
         self.cb_COM.setEnabled(flag)
