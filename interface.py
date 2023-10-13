@@ -55,13 +55,12 @@ class MagnetCFU(QMainWindow):
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
 
-        self.port = QSerialPort()
-        self.graph_widget = pg.PlotWidget()
-        self.timer = QTimer()
-        self.timer_mang = QTimer()
-        self.output_te = ''
-        self.buffer = bytearray()
-
+        self.port             = QSerialPort()
+        self.graph_widget     = pg.PlotWidget()
+        self.timer            = QTimer()
+        self.timer_mang       = QTimer()
+        self.output_te        = ''
+        self.buffer           = bytearray()
         self.discovery        = zhinst.core.ziDiscovery()
 
         self.discovery.find('mf-dev4999')
@@ -70,10 +69,10 @@ class MagnetCFU(QMainWindow):
         self.serveraddress    = self.dev_prop['serveraddress']
         self.serverport       = self.dev_prop['serverport']
         self.serverversion    = self.dev_prop["serverversion"]
+
         self.daq = zhinst.core.ziDAQServer(self.serveraddress, self.serverport, 6)
 
-        # Creating interface elements
-        # Control tab
+        # Creating interface elements | Control tab
         self.cb_COM         = QComboBox()
 
         self.lbl_COM        = QLabel("COM")
@@ -106,10 +105,10 @@ class MagnetCFU(QMainWindow):
         self.btn_open       = QPushButton("&Open...")
         self.btn_save       = QPushButton("&Save")
 
-        self.box_01          = QGroupBox("Info")
-        self.box_02          = QGroupBox("Value")
-        self.box_03          = QGroupBox("Control")
-        self.box_04          = QGroupBox("Hysteresis")
+        self.box_01         = QGroupBox("Info")
+        self.box_02         = QGroupBox("Value")
+        self.box_03         = QGroupBox("Control")
+        self.box_04         = QGroupBox("Hysteresis")
 
         self.lbl_volt.setFixedSize(45, 40)
         self.lbl_amper.setFixedSize(45, 40)
@@ -129,37 +128,30 @@ class MagnetCFU(QMainWindow):
         self.sb_interval.setSingleStep(100)
         self.sb_interval.setRange(0, 10000)
         self.sb_interval.setValue(1000)
+
         self.sb_interval.setFixedSize(100, 35)
+        self.le_resistance.setFixedSize(100, 35)
 
         self.le_IDN.setReadOnly(1)
-        self.le_IDN.setFixedHeight(26)
-        self.le_resistance.setDisabled(True)
-        self.le_resistance.setFixedSize(100, 35)
-        self.le_volt.setDisabled(True)
+
         self.le_volt.setPlaceholderText("0.00")
-        self.le_volt.setFixedSize(70, 35)
-        self.le_amper.setDisabled(True)
         self.le_amper.setPlaceholderText("0.00")
+
+        self.le_volt.setFixedSize(70, 35)
         self.le_amper.setFixedSize(70, 35)
-
         self.cb_COM.setFixedSize(90, 35)
-
         self.btn_IDN.setFixedWidth(70)
-        self.btn_set_curr.setCheckable(True)
-        self.btn_reset.setCheckable(True)
-        self.btn_start_meas.setCheckable(True)
+        self.le_IDN.setFixedHeight(26)
 
-        self.dsb_I_start.setAlignment(Qt.AlignCenter)
-        self.dsb_I_stop.setAlignment(Qt.AlignCenter)
-        self.lbl_amper.setAlignment(Qt.AlignCenter)
-        self.lbl_volt.setAlignment(Qt.AlignCenter)
-        self.dsb_step.setAlignment(Qt.AlignCenter)
-        self.sb_loops.setAlignment(Qt.AlignCenter)
-        self.sb_interval.setAlignment(Qt.AlignCenter)
-        self.le_IDN.setAlignment(Qt.AlignCenter)
-        self.le_volt.setAlignment(Qt.AlignCenter)
-        self.le_amper.setAlignment(Qt.AlignCenter)
-        self.le_resistance.setAlignment(Qt.AlignCenter)
+        for i in [self.le_amper, self.le_volt, self.le_resistance]:
+            i.setDisabled(True)
+
+        for i in [self.btn_set_curr, self.btn_reset, self.btn_start_meas]:
+            i.setCheckable(True)
+
+        for i in [self.dsb_I_start, self.dsb_I_stop, self.lbl_amper, self.lbl_volt, self.dsb_step, self.sb_loops,
+                  self.sb_interval, self.le_IDN, self.le_volt, self.le_amper, self.le_resistance]:
+            i.setAlignment(Qt.AlignCenter)
 
         # Config Tab
         self.cb_baud_rates    = QComboBox()
@@ -200,6 +192,7 @@ class MagnetCFU(QMainWindow):
         self.setContentsMargins(1, 1, 1, 1)
 
         container     = QWidget()
+        bottom_sp     = QWidget()
         tabs          = QTabWidget()
         outer_vlayout = QVBoxLayout()
         outer_hlayout = QHBoxLayout()
@@ -208,7 +201,6 @@ class MagnetCFU(QMainWindow):
         top_layout    = QGridLayout()
         middle_layout = QGridLayout()
         bottom_layout = QGridLayout()
-        bottom_sp     = QWidget()
 
         bottom_sp.setFixedSize(100, 130)
 
@@ -285,12 +277,12 @@ class MagnetCFU(QMainWindow):
         bottom_layout.addWidget(self.btn_save,       2, 1)
 
         # BTN connections
-        self.btn_IDN.clicked.connect(self.on_btn_idn)
-        self.btn_set_curr.clicked.connect(self.on_btn_set_curr)
-        self.btn_stop.clicked.connect(self.on_btn_stop)
-        self.btn_reset.clicked.connect(self.on_btn_reset)
+        self.btn_IDN.clicked.connect       (self.on_btn_idn)
+        self.btn_set_curr.clicked.connect  (self.on_btn_set_curr)
+        self.btn_stop.clicked.connect      (self.on_btn_stop)
+        self.btn_reset.clicked.connect     (self.on_btn_reset)
         self.btn_start_meas.clicked.connect(self.on_btn_start_meas)
-        self.btn_open.clicked.connect(self.on_btn_open)
+        self.btn_open.clicked.connect      (self.on_btn_open)
 
         self.box_01.setLayout(top_layout)
         self.box_02.setLayout(middle_layout)
@@ -314,22 +306,12 @@ class MagnetCFU(QMainWindow):
         layout         = QVBoxLayout()
         outer_layout   = QVBoxLayout()
 
-        layout.addWidget(self.lbl_baud_rates)
-        layout.addWidget(self.cb_baud_rates)
-        layout.addWidget(self.lbl_data_bits)
-        layout.addWidget(self.cb_data_bits)
-        layout.addWidget(self.lbl_parity)
-        layout.addWidget(self.cb_parity)
-        layout.addWidget(self.lbl_stop_bits)
-        layout.addWidget(self.cb_stop_bits)
-        layout.addWidget(self.lbl_flow_control)
-        layout.addWidget(self.cb_flow_control)
+        for i in [self.lbl_baud_rates, self.cb_baud_rates, self.lbl_data_bits, self.cb_data_bits, self.lbl_parity,
+                  self.cb_parity, self.lbl_stop_bits, self.cb_stop_bits, self.lbl_flow_control, self.cb_flow_control]:
+            layout.addWidget(i)
 
-        self.cb_baud_rates.setFixedSize(120, 40)
-        self.cb_data_bits.setFixedSize(120, 40)
-        self.cb_parity.setFixedSize(120, 40)
-        self.cb_stop_bits.setFixedSize(120, 40)
-        self.cb_flow_control.setFixedSize(120, 40)
+        for i in [self.cb_baud_rates, self.cb_data_bits, self.cb_parity, self.cb_stop_bits, self.cb_flow_control]:
+            i.setFixedSize(120, 40)
 
         layout.setAlignment(Qt.AlignHCenter)
 
@@ -360,14 +342,8 @@ class MagnetCFU(QMainWindow):
         self.le_port     = QLineEdit()
         self.le_version  = QLineEdit()
 
-
         if self.serveraddress == "172.16.0.35":
             self.status_text.setText("MFLI connected global")
-
-            # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
-            self.daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
-            self.daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
-            # daq.setInt('/dev4999/demods/0/enable', 1) # data transfer streaming
 
             self.le_host.setText(self.serveraddress)
             self.le_port.setText(str(self.serverport))
@@ -378,11 +354,6 @@ class MagnetCFU(QMainWindow):
         elif serveraddress == "127.0.0.1":
             self.status_text.setText("MFLI connected local")
             daq = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
-
-            # daq.setInt('/dev4999/sigins/0/autorange', 1)  # for voltage
-            daq.setInt('/dev4999/demods/0/adcselect', 0)  # input signal sig in 1
-            daq.setDouble('/dev4999/demods/0/timeconstant', 0.1)  # TC = 0.100
-            # daq.setInt('/dev4999/demods/0/enable', 1) # data transfer streaming
 
             self.le_host.setText(serveraddress)
             self.le_port.setText(str(serverport))
@@ -402,27 +373,20 @@ class MagnetCFU(QMainWindow):
         # Lock-in GroupBox
         self.lbl_wserver  = QLabel("<b>Data Server</b>")
         self.lbl_device   = QLabel("Device")
-        self.lbl_host     = QLabel("host")
+        self.lbl_host     = QLabel("Host")
         self.lbl_sport    = QLabel("Port")
         self.lbl_sversion = QLabel("Version")
 
-        self.lbl_device.setFixedHeight(35)
-        self.lbl_wserver.setFixedHeight(35)
-        self.lbl_sversion.setFixedHeight(35)
-        self.lbl_host.adjustSize()
-        self.lbl_sport.adjustSize()
+        for i in [self.lbl_device, self.lbl_wserver, self.lbl_sversion, self.lbl_host, self.lbl_sport]:
+            i.adjustSize()
 
         self.box_07.setFixedHeight(400)
 
-        self.le_host.setFixedHeight(35)
-        self.le_device.setFixedHeight(35)
-        self.le_port.setFixedHeight(35)
-        self.le_version.setFixedHeight(35)
+        for i in [self.le_host, self.le_port, self.le_version, self.le_device]:
+            i.setFixedHeight(35)
 
-        self.le_host.setDisabled(True)
-        self.le_port.setDisabled(True)
-        self.le_version.setDisabled(True)
-        self.le_device.setDisabled(True)
+        for i in [self.le_host, self.le_port, self.le_version, self.le_device]:
+            i.setDisabled(True)
 
         # Demodulators GroupBox
         self.lbl_freq     = QLabel("Freq (Hz)")
@@ -437,7 +401,6 @@ class MagnetCFU(QMainWindow):
         self.le_tc        = QLineEdit("0.1")
         self.le_phase     = QLineEdit("90.0")
         self.le_transfer  = QLineEdit("1674")
-        self.daq.setInt('/dev4999/demods/0/rate', int(self.le_transfer.text()))
 
         self.btn_phase    = QPushButton("Auto")
         self.btn_transfer = QPushButton("Auto")
@@ -445,21 +408,22 @@ class MagnetCFU(QMainWindow):
         self.cb_order     = QComboBox()
         self.cb_trigger   = QComboBox()
 
-        self.le_freq.setFixedHeight(30)
         self.le_freq.setDisabled(True)
-        self.le_transfer.setFixedHeight(30)
+
         self.le_transfer.setAlignment(Qt.AlignRight)
-        self.le_phase.setFixedHeight(30)
-        self.le_tc.setFixedHeight(30)
         self.le_phase.setAlignment(Qt.AlignRight)
 
-        self.cb_order.setFixedHeight(30)
-        self.cb_trigger.setFixedHeight(30)
+        for i in [self.le_freq, self.le_transfer, self.le_phase, self.le_tc, self.cb_order, self.cb_trigger]:
+            i.setFixedHeight(30)
+
         self.cb_trigger.addItems(['Continuous', 'Trigger In 1', 'Trigger In 2', 'Trigger In 1|2'])
-        self.cb_order.addItems(['1', '2', '3', '4', '5', '6', '7', '8'])
+
+        for i in range(1, 9):
+            self.cb_order.addItem(str(i))
         self.cb_order.setCurrentIndex(3)
 
         self.btn_transfer.setCheckable(True)
+        self.btn_transfer.setChecked(True)
 
         # Signal Inputs GroupBox
         self.lbl_range   = QLabel("Range")
@@ -473,13 +437,21 @@ class MagnetCFU(QMainWindow):
         self.btn_50      = QPushButton("50 Ω")
         self.btn_float   = QPushButton("Float")
 
-        self.btn_ac.setFixedWidth(40)
-        self.btn_50.setFixedWidth(50)
+        self.cb_sigin    = QComboBox()
+        self.cb_sigin.setFixedHeight(30)
+        for i in ['Sig In 1', 'Curr In 1', 'Trigger 1', 'Trigger 2', 'Aux Out 1', 'Aux Out 2']:
+            self.cb_sigin.addItem(i)
+
+        for i in [self.btn_float, self.btn_ac, self.btn_50]:
+            i.setCheckable(True)
+
+        self.btn_ac.setChecked(True)
+        self.btn_50.setChecked(True)
+
         self.btn_float.setFixedWidth(50)
         self.btn_range.setFixedWidth(50)
-        self.btn_float.setCheckable(True)
-        self.btn_50.setCheckable(True)
-        self.btn_ac.setCheckable(True)
+        self.btn_50.setFixedWidth(50)
+        self.btn_ac.setFixedWidth(40)
 
         self.le_range.setFixedSize(50, 30)
         self.le_range.setAlignment(Qt.AlignRight)
@@ -491,10 +463,13 @@ class MagnetCFU(QMainWindow):
         self.lbl_amp        = QLabel("Amp (Vpk)")
 
         self.cb_orange      = QComboBox()
-        self.le_amp         = QLineEdit("100.0m")
+        self.le_amp         = QLineEdit("0.100")
 
         self.btn_output_sig = QPushButton("On")
         self.btn_auto_amp   = QPushButton("Auto")
+
+        self.btn_auto_amp.setCheckable(True)
+        self.btn_auto_amp.setChecked(True)
 
         self.le_amp.setFixedHeight(30)
         self.le_amp.setAlignment(Qt.AlignRight)
@@ -504,18 +479,25 @@ class MagnetCFU(QMainWindow):
         self.cb_orange.setFixedHeight(30)
 
         # Connect lock-in button
-        self.le_range.textChanged.connect(self.changed_range)
-        self.le_scaling.textChanged.connect(self.changed_scaling)
-        self.le_phase.textChanged.connect(self.changed_phase)
-        self.le_transfer.textChanged.connect(self.changed_transfer)
-        self.cb_order.currentIndexChanged.connect(self.changed_order)
-        self.le_tc.textChanged.connect(self.changed_tc)
+        self.le_freq.setText(str(self.daq.getDouble('/dev4999/oscs/0/freq')))
+        self.le_freq.setMaxLength(13)
 
-        self.btn_float.clicked.connect(self.on_clicked_btn_float)
-        self.btn_ac.clicked.connect(self.on_clicked_btn_ac)
-        self.btn_50.clicked.connect(self.on_clicked_btn_50)
-        self.btn_range.clicked.connect(self.on_clicked_btn_range)
-        self.btn_transfer.clicked.connect(self.on_clicked_btn_transfer)
+        self.le_range.textChanged.connect        (self.changed_range)
+        self.le_scaling.textChanged.connect      (self.changed_scaling)
+        self.le_phase.textChanged.connect        (self.changed_phase)
+        self.le_transfer.textChanged.connect     (self.changed_transfer)
+        self.le_tc.textChanged.connect           (self.changed_tc)
+        self.le_amp.textChanged.connect          (self.changed_amp)
+
+        self.cb_order.currentIndexChanged.connect(self.changed_order)
+
+        self.btn_float.clicked.connect           (self.on_clicked_btn_float)
+        self.btn_ac.clicked.connect              (self.on_clicked_btn_ac)
+        self.btn_50.clicked.connect              (self.on_clicked_btn_50)
+        self.btn_range.clicked.connect           (self.on_clicked_btn_range)
+        self.btn_transfer.clicked.connect        (self.on_clicked_btn_transfer)
+        self.btn_auto_amp.clicked.connect        (self.on_clicked_btn_auto_amp)
+        self.btn_phase.clicked.connect           (self.on_clicked_btn_phase)
 
         top_layout.addWidget(self.lbl_wserver,       0, 0, 1, 0)
         top_layout.addWidget(self.lbl_sversion,      2, 0)
@@ -534,7 +516,7 @@ class MagnetCFU(QMainWindow):
         middle_layout.addWidget(self.lbl_phase,      0, 1)
         middle_layout.addWidget(self.lbl_transfer,   2, 1)
         middle_layout.addWidget(self.lbl_trigger,    6, 0)
-        # middle_layout.addWidget(self.lbl_sig_in,     0, 3)
+        middle_layout.addWidget(self.lbl_sig_in,     4, 1)
         middle_layout.addWidget(self.lbl_tc,         4, 0)
         middle_layout.addWidget(self.lbl_order,      2, 0)
 
@@ -545,6 +527,7 @@ class MagnetCFU(QMainWindow):
 
         middle_layout.addWidget(self.cb_trigger,     7, 0)
         middle_layout.addWidget(self.cb_order,       3, 0)
+        middle_layout.addWidget(self.cb_sigin,       5, 1)
 
         middle_layout.addWidget(self.btn_phase,      1, 2)
         middle_layout.addWidget(self.btn_transfer,   3, 2)
@@ -615,6 +598,17 @@ class MagnetCFU(QMainWindow):
         elif not self.btn_transfer.isChecked():
             self.daq.setInt('/dev4999/demods/0/enable', 0)
 
+    def on_clicked_btn_auto_amp(self):
+        if self.btn_auto_amp.isChecked():
+            self.daq.setInt('/dev4999/sigouts/0/enables/1', 1)
+        elif not self.btn_auto_amp.isChecked():
+            self.daq.setInt('/dev4999/sigouts/0/enables/1', 0)
+
+    def on_clicked_btn_phase(self):
+        self.daq.setInt('/dev4999/demods/0/phaseadjust', 1)
+        self.le_phase.setText(str(self.daq.getDouble('/dev4999/demods/0/phaseshift')))
+        self.le_phase.setMaxLength(6)
+
     def changed_range(self):
         self.daq.setDouble('/dev4999/sigins/0/range', float(self.le_range.text()))
 
@@ -632,6 +626,13 @@ class MagnetCFU(QMainWindow):
 
     def changed_tc(self):
         self.daq.setDouble('/dev4999/demods/0/timeconstant', float(self.le_tc.text()))
+
+    def changed_amp(self):
+        self.daq.setDouble('/dev4999/sigouts/0/amplitudes/1', float(self.le_amp.text()))
+
+    def changed_freq(self):
+        self.le_freq.setText(str(self.daq.getDouble('/dev4999/oscs/0/freq')))
+        self.le_freq.setMaxLength(10)
 
     def serial_control_enable(self, flag):
         self.cb_COM.setEnabled(flag)
