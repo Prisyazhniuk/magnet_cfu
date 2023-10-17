@@ -11,7 +11,7 @@ from zhinst.toolkit import Session
 
 # from pathlib import Path
 # import numpy as np
-# from zhinst.core import ziListEnum
+from zhinst.core import ziListEnum
 # import matplotlib.pyplot as plt
 
 
@@ -584,15 +584,15 @@ class MagnetCFU(QMainWindow):
 
             self.le_device.setText(self.dev_prop['devicetype'] + " " + self.dev_prop['deviceid'])
 
-        elif serveraddress == "127.0.0.1":
+        elif self.serveraddress == "127.0.0.1":
             self.status_text.setText("MFLI connected local")
-            daq = zhinst.core.ziDAQServer(serveraddress, serverport, 6)
+            daq = zhinst.core.ziDAQServer(self.serveraddress, self.serverport, 6)
 
-            self.le_host.setText(serveraddress)
-            self.le_port.setText(str(serverport))
-            self.le_version.setText(str(serverversion))
+            self.le_host.setText(self.serveraddress)
+            self.le_port.setText(str(self.serverport))
+            self.le_version.setText(str(self.serverversion))
 
-            self.le_device.setText(dev_prop['devicetype'] + " " + dev_prop['deviceid'])
+            self.le_device.setText(self.dev_prop['devicetype'] + " " + self.dev_prop['deviceid'])
 
         else:
             self.status_text.setText("MFLI not found")
@@ -719,6 +719,24 @@ class MagnetCFU(QMainWindow):
         self.upd_freq_timer.start()
 
         QTimer.singleShot(5000, self.stop_selection)
+
+        demod_path = '/dev4999/demods/0/sample'
+        signal_paths = []
+        signal_paths.append(demod_path + ".x")
+        signal_paths.append(demod_path + ".y")
+
+            # Check the device has demodulators.
+            flags = ziListEnum.recursive | ziListEnum.absolute | ziListEnum.streamingonly
+            streaming_nodes = daq.listNodes("dev4999", flags)
+            if demod_path not in (node.lower() for node in streaming_nodes):
+                print(
+                    f"Device dev4999 does not have demodulators. Please modify the example to specify",
+                    "a valid signal_path based on one or more of the following streaming nodes: ",
+                    "\n".join(streaming_nodes),
+                )
+                raise Exception(
+                    "Demodulator streaming nodes unavailable - see the message above for more information."
+                )
 
         self.le_range.textChanged.connect        (self.changed_range)
         self.le_scaling.textChanged.connect      (self.changed_scaling)
