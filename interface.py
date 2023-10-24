@@ -68,33 +68,32 @@ class MagnetCFU(QMainWindow):
         self.output_te        = ''
         self.buffer           = bytearray()
         self.discovery        = ziDiscovery()
+        self.device           = self.discovery.find('mf-dev4999').lower()
 
-        self.discovery.find('mf-dev4999')
-
-        self.dev_prop         = self.discovery.get('dev4999')
+        # device setup
+        self.api_lvl          = 6
+        self.dev_prop         = self.discovery.get(self.device)
         self.serveraddress    = self.dev_prop['serveraddress']
         self.serverport       = self.dev_prop['serverport']
         self.serverversion    = self.dev_prop["serverversion"]
+        self.daq              = ziDAQServer(self.serveraddress, self.serverport, self.api_lvl)
+        self.daq_module       = self.daq.dataAcquisitionModule()
 
-        self.daq = ziDAQServer(self.serveraddress, self.serverport, 6)
-
-        self.daq_module = self.daq.dataAcquisitionModule()
+        self.daq.unsubscribe("*")
 
         # plot lock-in graph
-        # self.timer.setInterval(50)
-        # self.timer.timeout.connect(self.read_data_update_plot)
-        # self.timer.start()
+        self.demod_path       = f"/{self.device}/demods/0/sample"  # Continuous equidistantly spaced data in time
+        self.signal_paths     = []
+        self.filename: str    = ""
+        self.plot: bool       = True
+        self.data_dev         = {}
 
-        self.demod_path = "/dev4999/demods/0/sample"
-        self.signal_paths = []
-        self.filename: str = ""
-        self.plot: bool = True
         self.signal_paths.append(self.demod_path + ".x")
         self.signal_paths.append(self.demod_path + ".y")
 
         # Check the device has demodulators.
         flags = ziListEnum.recursive | ziListEnum.absolute | ziListEnum.streamingonly
-        streaming_nodes = self.daq.listNodes("dev4999", flags)
+        streaming_nodes = self.daq.listNodes(self.device, flags)
         if self.demod_path not in (node.lower() for node in streaming_nodes):
             print(
                 "Device dev4999 does not have demodulators. Please modify the example to specify",
@@ -105,22 +104,37 @@ class MagnetCFU(QMainWindow):
                 "Demodulator streaming nodes unavailable - see the message above for more information."
             )
 
-            # Defined the total time we would like to record data for and its sampling rate.
-            # total_duration: Time in seconds: This examples stores all the acquired data in the `data`
-            # dict - remove this continuous storing in read_data_update_plot before increasing the size
-            # of total_duration!
-        total_duration = 5
-        module_sampling_rate = 30000  # Number of points/second
+        # self.daq.subscribe(self.demod_path)
+        #
+        # sampling_rate = self.daq.getDouble(f"/{self.device}/demods/0/rate")
+        # TC = self.daq.getDouble(f"/{self.device}/demods/0/timeconstant")
+        #
+        # # Without getAsEvent no value would be returned by poll.
+        # self.daq.getAsEvent('/dev4999/sigouts/0/amplitudes')
+        # self.daq.subscribe('/dev4999/sigouts/0/amplitudes')
+        # self.daq.poll(0.200, 10, 0, True)
+        #
+        # print( sampling_rate)
+
+
+        #
+        #     # Defined the total time we would like to record data for and its sampling rate.
+        #     # total_duration: Time in seconds: This examples stores all the acquired data in the `data`
+        #     # dict - remove this continuous storing in read_data_update_plot before increasing the size
+        #     # of total_duration!
+        total_duration = 2
+        module_sampling_rate = 3000  # Number of points/second
         burst_duration = 0.2  # Time in seconds for each data burst/segment.
         num_cols = int(np.ceil(module_sampling_rate * burst_duration))
         num_bursts = int(np.ceil(total_duration / burst_duration))
-
-        # Configure the Data Acquisition Module.
-        # Set the device that will be used for the trigger - this parameter must be set.
+        #
+        # # Configure the Data Acquisition Module.
+        # # Set the device that will be used for the trigger - this parameter must be set.
         self.daq_module.set("device", "dev4999")
-
-        # Specify continuous acquisition (type=0).
+        #
+        # # Specify continuous acquisition (type=0).
         self.daq_module.set("type", 0)
+        # self.daq_module.set("endless", 1)
 
         # 'grid/mode' - Specify the interpolation method of
         #   the returned data samples.
@@ -169,21 +183,22 @@ class MagnetCFU(QMainWindow):
             # to file each time read() is called.
             self.daq_module.set("save/saveonread", 1)
 
-        data_dev = {}
+
         # A dictionary to store all the acquired data.
         for signal_path in self.signal_paths:
             print("Subscribing to ", signal_path)
             self.daq_module.subscribe(signal_path)
-            data_dev[signal_path] = []
+            self.data_dev[signal_path] = []
 
         clockbase = float(self.daq.getInt("/dev4999/clockbase"))
+
         if self.plot:
             # self.lock_in_gw.setBackground('#581845')
             styles = {"color": "#FFC300", "font-size": "15px"}
 
             self.lock_in_gw.setLabel("left", "Voltage (U)", **styles)
             self.lock_in_gw.setLabel("bottom", "Time (s)", **styles)
-            self.lock_in_gw.setXRange(0, total_duration, padding=0)
+            # self.lock_in_gw.setXRange(0, total_duration, padding=0)
 
             ts0 = np.nan
             read_count = 0
@@ -219,6 +234,7 @@ class MagnetCFU(QMainWindow):
                                          - signal_burst["timestamp"][0, 0]
                                  ) / clockbase
                             data_dev[signal_path].append(signal_burst)
+
                             print(
                                 f"Read: {read_count}, progress: {100 * progress:.2f}%.",
                                 f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
@@ -227,18 +243,19 @@ class MagnetCFU(QMainWindow):
                         # Note: If we read before the next burst has finished, there may be no new data.
                         # No action required.
                         pass
-
+        #
                 # Update the plot.
                 if self.plot:
+                    # self.timer.setInterval(50)
+                    # self.timer.start()
                     self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
                     # plt.pause(0.01)
-                    # fig.canvas.draw()
                 return data_dev, timestamp0
-
-        # Start recording data.
+        #
+        # # Start recording data.
         self.daq_module.execute()
-
-        # Record data in a loop with timeout.
+        #
+        # # Record data in a loop with timeout.
         timeout = 1.5 * total_duration
         t0_measurement = time.time()
         # The maximum time to wait before reading out new data.
@@ -251,13 +268,13 @@ class MagnetCFU(QMainWindow):
                     "Are the streaming nodes enabled?"
                     "Has a valid signal_path been specified?"
                 )
-            data_dev, ts0 = read_data_update_plot(data_dev, ts0)
+            self.data_dev, ts0 = read_data_update_plot(self.data_dev, ts0)
             read_count += 1
             # We don't need to update too quickly.
             time.sleep(max(0, t_update - (time.time() - t0_loop)))
-
+        #
         # There may be new data between the last read() and calling finished().
-        data_dev, _ = read_data_update_plot(data_dev, ts0)
+        self.data_dev, _ = read_data_update_plot(self.data_dev, ts0)
 
         # Before exiting, make sure that saving to file is complete (it's done in the background)
         # by testing the 'save/save' parameter.
