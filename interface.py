@@ -130,7 +130,7 @@ class MagnetCFU(QMainWindow):
         #
         # # Configure the Data Acquisition Module.
         # # Set the device that will be used for the trigger - this parameter must be set.
-        self.daq_module.set("device", "dev4999")
+        self.daq_module.set("device", self.device)
         #
         # # Specify continuous acquisition (type=0).
         self.daq_module.set("type", 0)
@@ -190,7 +190,7 @@ class MagnetCFU(QMainWindow):
             self.daq_module.subscribe(signal_path)
             self.data_dev[signal_path] = []
 
-        clockbase = float(self.daq.getInt("/dev4999/clockbase"))
+        self.clockbase = float(self.daq.getInt(f'/{self.device}/clockbase'))
 
         if self.plot:
             # self.lock_in_gw.setBackground('#581845')
@@ -201,58 +201,9 @@ class MagnetCFU(QMainWindow):
             # self.lock_in_gw.setXRange(0, total_duration, padding=0)
 
             ts0 = np.nan
-            read_count = 0
+            self.read_count = 0
 
-            def read_data_update_plot(data_dev, timestamp0):
-                """
-                Read the acquired data out from the module and plot it. Raise an
-                AssertionError if no data is returned.
-                """
-                data_read = self.daq_module.read(True)
-                returned_signal_paths = [
-                    signal_path.lower() for signal_path in data_read.keys()
-                ]
-                progress = self.daq_module.progress()[0]
-                # Loop over all the subscribed signals:
-                for signal_path in self.signal_paths:
-                    if signal_path.lower() in returned_signal_paths:
-                        # Loop over all the bursts for the subscribed signal. More than
-                        # one burst may be returned at a time, in particular if we call
-                        # read() less frequently than the burst_duration.
-                        for index, signal_burst in enumerate(data_read[signal_path.lower()]):
-                            if np.any(np.isnan(timestamp0)):
-                                # Set our first timestamp to the first timestamp we obtain.
-                                timestamp0 = signal_burst["timestamp"][0, 0]
-                            # Convert from device ticks to time in seconds.
-                            t = (signal_burst["timestamp"][0, :] - timestamp0) / clockbase
-                            value = signal_burst["value"][0, :]
-                            if self.plot:
-                                self.data_line = self.lock_in_gw.plot(t, value)
-                            num_samples = len(signal_burst["value"][0, :])
-                            dt = (
-                                         signal_burst["timestamp"][0, -1]
-                                         - signal_burst["timestamp"][0, 0]
-                                 ) / clockbase
-                            data_dev[signal_path].append(signal_burst)
-
-                            print(
-                                f"Read: {read_count}, progress: {100 * progress:.2f}%.",
-                                f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
-                            )
-                    else:
-                        # Note: If we read before the next burst has finished, there may be no new data.
-                        # No action required.
-                        pass
-        #
-                # Update the plot.
-                if self.plot:
-                    # self.timer.setInterval(50)
-                    # self.timer.start()
-                    self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
-                    # plt.pause(0.01)
-                return data_dev, timestamp0
-        #
-        # # Start recording data.
+        # Start recording data.
         self.daq_module.execute()
         #
         # # Record data in a loop with timeout.
@@ -268,13 +219,13 @@ class MagnetCFU(QMainWindow):
                     "Are the streaming nodes enabled?"
                     "Has a valid signal_path been specified?"
                 )
-            self.data_dev, ts0 = read_data_update_plot(self.data_dev, ts0)
-            read_count += 1
+            self.data_dev, ts0 = self.read_data_update_plot(self.data_dev, ts0)
+            self.read_count += 1
             # We don't need to update too quickly.
             time.sleep(max(0, t_update - (time.time() - t0_loop)))
         #
         # There may be new data between the last read() and calling finished().
-        self.data_dev, _ = read_data_update_plot(self.data_dev, ts0)
+        self.data_dev, _ = self.read_data_update_plot(self.data_dev, ts0)
 
         # Before exiting, make sure that saving to file is complete (it's done in the background)
         # by testing the 'save/save' parameter.
@@ -800,69 +751,69 @@ class MagnetCFU(QMainWindow):
         return _lock_in_tab
 
     def stop_selection(self):
-        print(str(self.daq.getDouble('/dev4999/oscs/0/freq')))
+        print(str(self.daq.getDouble(f'/{self.device}/oscs/0/freq')))
 
     def on_clicked_btn_float(self):
         if self.btn_float.isChecked():
-            self.daq.setInt('/dev4999/sigins/0/float', 1)
+            self.daq.setInt(f'/{self.device}/sigins/0/float', 1)
         elif not self.btn_float.isChecked():
-            self.daq.setInt('/dev4999/sigins/0/float', 0)
+            self.daq.setInt(f'/{self.device}/sigins/0/float', 0)
 
     def on_clicked_btn_50(self):
         if self.btn_50.isChecked():
-            self.daq.setInt('/dev4999/sigins/0/imp50', 1)
+            self.daq.setInt(f'/{self.device}/sigins/0/imp50', 1)
         elif not self.btn_50.isChecked():
-            self.daq.setInt('/dev4999/sigins/0/imp50', 0)
+            self.daq.setInt(f'/{self.device}/sigins/0/imp50', 0)
 
     def on_clicked_btn_ac(self):
         if self.btn_ac.isChecked():
-            self.daq.setInt('/dev4999/sigins/0/ac', 1)
+            self.daq.setInt(f'/{self.device}/sigins/0/ac', 1)
         elif not self.btn_ac.isChecked():
-            self.daq.setInt('/dev4999/sigins/0/ac', 0)
+            self.daq.setInt(f'/{self.device}/sigins/0/ac', 0)
 
     def on_clicked_btn_range(self):
-        self.daq.setInt('/dev4999/sigins/0/autorange', 1)
+        self.daq.setInt(f'/{self.device}/sigins/0/autorange', 1)
 
     def on_clicked_btn_transfer(self):
         if self.btn_transfer.isChecked():
-            self.daq.setInt('/dev4999/demods/0/enable', 1)
+            self.daq.setInt(f'/{self.device}/demods/0/enable', 1)
         elif not self.btn_transfer.isChecked():
-            self.daq.setInt('/dev4999/demods/0/enable', 0)
+            self.daq.setInt(f'/{self.device}/demods/0/enable', 0)
 
     def on_clicked_btn_auto_amp(self):
         if self.btn_auto_amp.isChecked():
-            self.daq.setInt('/dev4999/sigouts/0/enables/1', 1)
+            self.daq.setInt(f'/{self.device}/sigouts/0/enables/1', 1)
         elif not self.btn_auto_amp.isChecked():
-            self.daq.setInt('/dev4999/sigouts/0/enables/1', 0)
+            self.daq.setInt(f'/{self.device}/sigouts/0/enables/1', 0)
 
     def on_clicked_btn_phase(self):
-        self.daq.setInt('/dev4999/demods/0/phaseadjust', 1)
+        self.daq.setInt(f'/{self.device}/demods/0/phaseadjust', 1)
         self.le_phase.setText(str(self.daq.getDouble('/dev4999/demods/0/phaseshift')))
         self.le_phase.setMaxLength(6)
 
     def changed_range(self):
-        self.daq.setDouble('/dev4999/sigins/0/range', float(self.le_range.text()))
+        self.daq.setDouble(f'/{self.device}/sigins/0/range', float(self.le_range.text()))
 
     def changed_scaling(self):
-        self.daq.setDouble('/dev4999/sigins/0/scaling', float(self.le_scaling.text()))
+        self.daq.setDouble(f'/{self.device}/sigins/0/scaling', float(self.le_scaling.text()))
 
     def changed_transfer(self):
-        self.daq.setDouble('/dev4999/demods/0/rate', float(self.le_transfer.text()))
+        self.daq.setDouble(f'/{self.device}/demods/0/rate', float(self.le_transfer.text()))
 
     def changed_phase(self):
-        self.daq.setDouble('/dev4999/demods/0/phaseshift', float(self.le_phase.text()))
+        self.daq.setDouble(f'/{self.device}/demods/0/phaseshift', float(self.le_phase.text()))
 
     def changed_order(self):
-        self.daq.setInt('/dev4999/demods/0/order', int(self.cb_order.currentText()))
+        self.daq.setInt(f'/{self.device}/demods/0/order', int(self.cb_order.currentText()))
 
     def changed_tc(self):
-        self.daq.setDouble('/dev4999/demods/0/timeconstant', float(self.le_tc.text()))
+        self.daq.setDouble(f'/{self.device}/demods/0/timeconstant', float(self.le_tc.text()))
 
     def changed_amp(self):
-        self.daq.setDouble('/dev4999/sigouts/0/amplitudes/1', float(self.le_amp.text()))
+        self.daq.setDouble(f'/{self.device}/sigouts/0/amplitudes/1', float(self.le_amp.text()))
 
     def changed_freq(self):
-        self.le_freq.setText(str(self.daq.getDouble('/dev4999/oscs/0/freq')))
+        self.le_freq.setText(str(self.daq.getDouble(f'/{self.device}/oscs/0/freq')))
 
     def serial_control_enable(self, flag):
         self.cb_COM.setEnabled(flag)
@@ -1158,4 +1109,53 @@ class MagnetCFU(QMainWindow):
         x = pos.x()
         y = pos.y()
         self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
+
+    def read_data_update_plot(self, data_dev, timestamp0):
+        """
+        Read the acquired data out from the module and plot it. Raise an
+        AssertionError if no data is returned.
+        """
+        data_read = self.daq_module.read(True)
+        returned_signal_paths = [
+            signal_path.lower() for signal_path in data_read.keys()
+        ]
+        progress = self.daq_module.progress()[0]
+        # Loop over all the subscribed signals:
+        for signal_path in self.signal_paths:
+            if signal_path.lower() in returned_signal_paths:
+                # Loop over all the bursts for the subscribed signal. More than
+                # one burst may be returned at a time, in particular if we call
+                # read() less frequently than the burst_duration.
+                for index, signal_burst in enumerate(data_read[signal_path.lower()]):
+                    if np.any(np.isnan(timestamp0)):
+                        # Set our first timestamp to the first timestamp we obtain.
+                        timestamp0 = signal_burst["timestamp"][0, 0]
+                    # Convert from device ticks to time in seconds.
+                    t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+                    value = signal_burst["value"][0, :]
+                    if self.plot:
+                        self.data_line = self.lock_in_gw.plot(t, value)
+                    num_samples = len(signal_burst["value"][0, :])
+                    dt = (
+                                 signal_burst["timestamp"][0, -1]
+                                 - signal_burst["timestamp"][0, 0]
+                         ) / self.clockbase
+                    data_dev[signal_path].append(signal_burst)
+
+                    print(
+                        f"Read: {self.read_count}, progress: {100 * progress:.2f}%.",
+                        f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
+                    )
+            else:
+                # Note: If we read before the next burst has finished, there may be no new data.
+                # No action required.
+                pass
+        #
+        # Update the plot.
+        if self.plot:
+            # self.timer.setInterval(50)
+            # self.timer.start()
+            self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
+            # plt.pause(0.01)
+        return data_dev, timestamp0
 
