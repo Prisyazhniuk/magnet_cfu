@@ -29,16 +29,6 @@ from PyQt5.QtWidgets import (
     QFrame
 )
 
-class CustomDoubleSpinbox(QDoubleSpinBox):
-    def validate(self, text: str, pos: int) -> object:
-        text = text.replace(".", ",")
-        return QDoubleSpinBox.validate(self, text, pos)
-
-    def valueFromText(self, text: str) -> float:
-        text = text.replace(",", ".")
-        return float(text)
-
-
 def decimal_range(start, stop, increment):
     while start < stop:
         yield start
@@ -60,6 +50,7 @@ class MagnetCFU(QMainWindow):
         self.port             = QSerialPort()
         self.graph_widget     = pg.PlotWidget()
         self.lock_in_gw       = pg.PlotWidget()
+
 
         self.timer            = QTimer()
         self.timer_mang       = QTimer()
@@ -122,7 +113,7 @@ class MagnetCFU(QMainWindow):
         #     # total_duration: Time in seconds: This examples stores all the acquired data in the `data`
         #     # dict - remove this continuous storing in read_data_update_plot before increasing the size
         #     # of total_duration!
-        total_duration = 2
+        total_duration = 1
         module_sampling_rate = 3000  # Number of points/second
         burst_duration = 0.2  # Time in seconds for each data burst/segment.
         num_cols = int(np.ceil(module_sampling_rate * burst_duration))
@@ -875,6 +866,13 @@ class MagnetCFU(QMainWindow):
         self.write_port("A007*IDN?\n")
         self.read_idn_from_port()
 
+        # self.write_port("*POL?\n")
+        # pol = self.read_polarity()
+        # print(pol)
+
+        # if pol == "2":
+        #     self.le_volt.setInputMask("-")
+
         self.port.write("A007MEAS:VOLT?\n".encode())
         self.read_volt()
 
@@ -892,12 +890,16 @@ class MagnetCFU(QMainWindow):
             self.le_IDN.setText(text)
 
     def read_volt(self):
+        # self.receive_port()
+        # self.write_port("*POL?\n")
+        # pol = self.read_polarity()
+
         self.port.waitForReadyRead(self.sb_interval.value())
         volt_f = 0.0
 
         while self.port.canReadLine():
-            volt = self.port.readLine().data().decode()
-            volt = volt.rstrip('\r\n')
+            volt   = self.port.readLine().data().decode()
+            volt   = volt.rstrip('\r\n')
             volt_f = float(volt)
         self.le_volt.setText("{:.2f}".format(volt_f))
 
@@ -931,7 +933,8 @@ class MagnetCFU(QMainWindow):
         while self.port.canReadLine():
             polarity = self.port.readLine().data().decode()
             polarity = polarity.rstrip('\r\n')
-            polarity = int(polarity)
+
+            # print(type(polarity))
 
             return polarity
 
@@ -951,7 +954,7 @@ class MagnetCFU(QMainWindow):
 
         if self.dsb_I_start.value() > 0.0:
             self.port.write("*POL 1\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            self.port.waitForReadyRead(self.sb_interval.value())
             for _i in decimal_range(0, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
                 a = "A007SOUR:VOLT "
