@@ -79,6 +79,9 @@ class MagnetCFU(QMainWindow):
         self.plot: bool       = True
         self.data_dev         = {}
 
+        #for debug
+        self.output_test = ''
+
         self.signal_paths.append(self.demod_path + ".x")
         self.signal_paths.append(self.demod_path + ".y")
 
@@ -863,7 +866,7 @@ class MagnetCFU(QMainWindow):
     @pyqtSlot()
     def on_btn_idn(self):
         self.init_port()
-        self.write_port("*IDN?\n")
+        self.write_port("A007*IDN?\n")
         self.read_idn_from_port()
 
         # self.write_port("*POL?\n")
@@ -873,21 +876,21 @@ class MagnetCFU(QMainWindow):
         # if pol == "2":
         #     self.le_volt.setInputMask("-")
 
-        self.port.write("MEAS:VOLT?\n".encode())
+        self.port.write("A007MEAS:VOLT?\n".encode())
         self.read_volt()
 
-        self.port.write("MEAS:CURR?\n".encode())
+        self.port.write("A007MEAS:CURR?\n".encode())
         self.read_amper()
         self.port.close()
 
     def read_idn_from_port(self):
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        self.port.waitForReadyRead(self.sb_interval.value())
 
         while self.port.canReadLine():
             text = self.port.readLine().data().decode()
             text = text.rstrip('\r\n')
-            self.output_idn = text
-            self.le_IDN.setText(text)
+            self.output_idn_test = text
+            self.le_IDN.setText(text[2:])
 
     def read_volt(self):
         # self.receive_port()
@@ -919,11 +922,11 @@ class MagnetCFU(QMainWindow):
         self.status_text.setText("Port opened")
         self.init_port()
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("SYST:REM\n".encode())
+        self.port.write("A007SYST:REM\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("*CLS\n".encode())
+        self.port.write("A007*CLS\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("OUTP ON\n".encode())
+        self.port.write("A007OUTP ON\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
         self.set_curr()
 
@@ -944,7 +947,7 @@ class MagnetCFU(QMainWindow):
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
             for _i in decimal_range(0, abs(self.dsb_I_start.value()) + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -957,7 +960,7 @@ class MagnetCFU(QMainWindow):
             self.port.waitForReadyRead(self.sb_interval.value())
             for _i in decimal_range(0, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -976,7 +979,7 @@ class MagnetCFU(QMainWindow):
             for _i in rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
                                         0 - self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -997,7 +1000,7 @@ class MagnetCFU(QMainWindow):
             for _i in rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
                                         0 - self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -1007,8 +1010,8 @@ class MagnetCFU(QMainWindow):
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.port.write("*POL 1\n".encode())
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("OUTP OFF\n".encode())
-            self.port.write("*RST\n".encode())
+            self.port.write("A007OUTP OFF\n".encode())
+            self.port.write("A007*RST\n".encode())
             self.port.close()
             self.status_text.setText("Port closed")
             self.btn_reset.setChecked(False)
@@ -1017,11 +1020,11 @@ class MagnetCFU(QMainWindow):
     def on_btn_start_meas(self):
         self.init_port()
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("SYST:REM\n".encode())
+        self.port.write("A007SYST:REM\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("*CLS\n".encode())
+        self.port.write("A007*CLS\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("OUTP ON\n".encode())
+        self.port.write("A007OUTP ON\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
         self.start_meas()
 
@@ -1032,7 +1035,7 @@ class MagnetCFU(QMainWindow):
             for _i in decimal_range(0, abs(self.dsb_I_start.value()) + self.dsb_step.value(),
                                     self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -1042,7 +1045,7 @@ class MagnetCFU(QMainWindow):
             for _i in rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
                                         0 - self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -1055,7 +1058,7 @@ class MagnetCFU(QMainWindow):
 
             for _i in decimal_range(0, self.dsb_I_stop.value() + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -1069,7 +1072,7 @@ class MagnetCFU(QMainWindow):
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
             for _i in decimal_range(0, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -1080,7 +1083,7 @@ class MagnetCFU(QMainWindow):
             for _i in rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
                                         0 - self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
@@ -1093,7 +1096,7 @@ class MagnetCFU(QMainWindow):
 
             for _i in decimal_range(0, abs(self.dsb_I_stop.value()) + self.dsb_step.value(), self.dsb_step.value()):
                 self.receive_port()
-                a = "SOUR:VOLT "
+                a = "A007SOUR:VOLT "
                 b = _i * 10
                 c = "CURR "
                 d = _i
