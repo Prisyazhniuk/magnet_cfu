@@ -50,13 +50,16 @@ class MagnetCFU(QMainWindow):
         self.port             = QSerialPort()
         self.graph_widget     = pg.PlotWidget()
         self.lock_in_gw       = pg.PlotWidget()
+        self.hysteresis_graph = pg.PlotWidget()
 
 
         self.timer            = QTimer()
         self.timer_mang       = QTimer()
         self.upd_freq_timer   = QTimer()
 
-        self.output_te        = ''
+
+        self.real_curr        = None
+        self.real_volt        = None
         self.buffer           = bytearray()
         self.discovery        = ziDiscovery()
         self.device           = self.discovery.find('mf-dev4999').lower()
@@ -368,7 +371,7 @@ class MagnetCFU(QMainWindow):
 
         bottom_sp.setFixedSize(100, 130)
 
-        hyst_layout.addWidget(self.graph_widget)
+        hyst_layout.addWidget(self.hysteresis_graph)
         lock_in.addWidget(self.lock_in_gw)
 
         self.box_04.setFixedSize(500, 300)
@@ -835,8 +838,15 @@ class MagnetCFU(QMainWindow):
     def receive_port(self):
         self.port.waitForReadyRead(self.sb_interval.value())
         data = self.port.readAll()
-        self.serial_data = data.data().decode('utf8')
-        return self.serial_data.rstrip('\r\n')
+        decode_data = data.data().decode()
+        return decode_data.rstrip('\r\n')
+
+        # another realization read port
+        # if self.port.canReadLine():
+        #     idn_text = self.port.readLine().data().decode()[2:]
+        #     self.le_IDN.setText(idn_text)
+        # else:
+        #     self.status_text.setText("Can't read IDN")
 
     def write_port(self, data):
         self.port.writeData(data.encode())
@@ -861,13 +871,14 @@ class MagnetCFU(QMainWindow):
             self.status_text.setText("Port open error")
             self.serial_control_enable(True)
         else:
-            self.status_text.setText("Port opened")
+            self.status_text.setText("Remote control completed")
 
     @pyqtSlot()
     def on_btn_idn(self):
         self.init_port()
         self.write_port("A007*IDN?\n")
-        self.read_idn_from_port()
+        self.le_IDN.setText(self.receive_port()[2:])
+        # self.read_idn_from_port()
 
         # self.write_port("*POL?\n")
         # pol = self.read_polarity()
@@ -881,16 +892,25 @@ class MagnetCFU(QMainWindow):
 
         self.port.write("A007MEAS:CURR?\n".encode())
         self.read_amper()
+
+        # self.real_meas_VI()
+        # print(self.real_volt, self.real_curr)
+
+        #self.timer.timeout.connect(self.read_and_update_data())
+        self.read_and_update_data()
+
+
         self.port.close()
 
-    def read_idn_from_port(self):
+    def real_meas_VI(self):
+        self.port.write("A007FETC?\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value())
+        real_meas_ascii = self.port.readAll()
+        real_meas = real_meas_ascii.data().decode().rstrip('\r\n')
+        list_real_meas = real_meas.split(',')
+        self.real_volt = float(list_real_meas[0])
+        self.real_curr = float(list_real_meas[1])
 
-        while self.port.canReadLine():
-            text = self.port.readLine().data().decode()
-            text = text.rstrip('\r\n')
-            self.output_idn_test = text
-            self.le_IDN.setText(text[2:])
 
     def read_volt(self):
         # self.receive_port()
@@ -1115,6 +1135,30 @@ class MagnetCFU(QMainWindow):
         x = pos.x()
         y = pos.y()
         self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
+
+    def read_and_update_data(self):
+
+        self.real_curr, self.real_volt = self.get_device_data()
+
+        self.hysteresis_graph.plot(self.real_curr, self.real_volt, pen='b', clear=True)
+
+    def get_device_data(self):
+
+        self.timer.start(1000)  # 1000 ms
+        
+        self.port.write("A007FETC?\n".encode())
+        self.port.waitForReadyRead(self.sb_interval.value())
+        real_meas_ascii = self.port.readAll()
+        real_meas = real_meas_ascii.data().decode().rstrip('\r\n')
+        list_real_meas = real_meas.split(',')
+
+        data_v = []
+        data_i = []
+
+        data_v.append(float(list_real_meas[0]))
+        data_i.append(float(list_real_meas[1]))
+
+        return data_v, data_i
 
     def read_data_update_plot(self, data_dev, timestamp0):
         """
