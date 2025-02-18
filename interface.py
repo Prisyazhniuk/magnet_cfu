@@ -53,9 +53,14 @@ class MagnetCFU(QMainWindow):
         self.hysteresis_graph = pg.PlotWidget()
 
 
-        self.timer            = QTimer()
-        self.timer_mang       = QTimer()
-        self.upd_freq_timer   = QTimer()
+        self.timer_lock_in      = QTimer()
+        self.timer_lock_in.timeout.connect(self.update_lock_in_data)
+        self.timer_lock_in.setInterval(10)
+
+
+
+        # self.timer_mang       = QTimer()
+        # self.upd_freq_timer   = QTimer()
 
 
         self.real_curr        = None
@@ -119,122 +124,129 @@ class MagnetCFU(QMainWindow):
         #     # total_duration: Time in seconds: This examples stores all the acquired data in the `data`
         #     # dict - remove this continuous storing in read_data_update_plot before increasing the size
         #     # of total_duration!
-        total_duration = 2
-        module_sampling_rate = 3000  # Number of points/second
-        burst_duration = 0.2  # Time in seconds for each data burst/segment.
-        num_cols = int(np.ceil(module_sampling_rate * burst_duration))
-        num_bursts = int(np.ceil(total_duration / burst_duration))
+        # total_duration = 2
+        # module_sampling_rate = 3000  # Number of points/second
+        # burst_duration = 0.2  # Time in seconds for each data burst/segment.
+        # num_cols = int(np.ceil(module_sampling_rate * burst_duration))
+        # num_bursts = int(np.ceil(total_duration / burst_duration))
+        # #
+        # # # Configure the Data Acquisition Module.
+        # # # Set the device that will be used for the trigger - this parameter must be set.
+        # self.daq_module.set("device", self.device)
+        # #
+        # # # Specify continuous acquisition (type=0).
+        # self.daq_module.set("type", 0)
+        # # self.daq_module.set("endless", 1)
         #
-        # # Configure the Data Acquisition Module.
-        # # Set the device that will be used for the trigger - this parameter must be set.
-        self.daq_module.set("device", self.device)
+        # # 'grid/mode' - Specify the interpolation method of
+        # #   the returned data samples.
+        # #
+        # # 1 = Nearest. If the interval between samples on the grid does not match
+        # #     the interval between samples sent from the device exactly, the nearest
+        # #     sample (in time) is taken.
+        # #
+        # # 2 = Linear interpolation. If the interval between samples on the grid does
+        # #     not match the interval between samples sent from the device exactly,
+        # #     linear interpolation is performed between the two neighbouring
+        # #     samples.
+        # #
+        # # 4 = Exact. The subscribed signal with the highest sampling rate (as sent
+        # #     from the device) defines the interval between samples on the DAQ
+        # #     Module's grid. If multiple signals are subscribed, these are
+        # #     interpolated onto the grid (defined by the signal with the highest
+        # #     rate, "highest_rate"). In this mode, duration is
+        # #     read-only and is defined as num_cols/highest_rate.
+        # self.daq_module.set("grid/mode", 2)
+        # # 'count' - Specify the number of bursts of data the
+        # #   module should return (if endless=0). The
+        # #   total duration of data returned by the module will be
+        # #   count*duration.
+        # self.daq_module.set("count", num_bursts)
+        # # 'duration' - Burst duration in seconds.
+        # #   If the data is interpolated linearly or using nearest neighbout, specify
+        # #   the duration of each burst of data that is returned by the DAQ Module.
+        # self.daq_module.set("duration", burst_duration)
+        # # 'grid/cols' - The number of points within each duration.
+        # #   This parameter specifies the number of points to return within each
+        # #   burst (duration seconds worth of data) that is
+        # #   returned by the DAQ Module.
+        # self.daq_module.set("grid/cols", num_cols)
         #
-        # # Specify continuous acquisition (type=0).
-        self.daq_module.set("type", 0)
-        # self.daq_module.set("endless", 1)
-
-        # 'grid/mode' - Specify the interpolation method of
-        #   the returned data samples.
-        #
-        # 1 = Nearest. If the interval between samples on the grid does not match
-        #     the interval between samples sent from the device exactly, the nearest
-        #     sample (in time) is taken.
-        #
-        # 2 = Linear interpolation. If the interval between samples on the grid does
-        #     not match the interval between samples sent from the device exactly,
-        #     linear interpolation is performed between the two neighbouring
-        #     samples.
-        #
-        # 4 = Exact. The subscribed signal with the highest sampling rate (as sent
-        #     from the device) defines the interval between samples on the DAQ
-        #     Module's grid. If multiple signals are subscribed, these are
-        #     interpolated onto the grid (defined by the signal with the highest
-        #     rate, "highest_rate"). In this mode, duration is
-        #     read-only and is defined as num_cols/highest_rate.
-        self.daq_module.set("grid/mode", 2)
-        # 'count' - Specify the number of bursts of data the
-        #   module should return (if endless=0). The
-        #   total duration of data returned by the module will be
-        #   count*duration.
-        self.daq_module.set("count", num_bursts)
-        # 'duration' - Burst duration in seconds.
-        #   If the data is interpolated linearly or using nearest neighbout, specify
-        #   the duration of each burst of data that is returned by the DAQ Module.
-        self.daq_module.set("duration", burst_duration)
-        # 'grid/cols' - The number of points within each duration.
-        #   This parameter specifies the number of points to return within each
-        #   burst (duration seconds worth of data) that is
-        #   returned by the DAQ Module.
-        self.daq_module.set("grid/cols", num_cols)
-
-        if self.filename:
-            # 'save/fileformat' - The file format to use for the saved data.
-            #    0 - Matlab
-            #    1 - CSV
-            self.daq_module.set("save/fileformat", 1)
-            # 'save/filename' - Each file will be saved to a
-            # new directory in the Zurich Instruments user directory with the name
-            # filename_NNN/filename_NNN/
-            self.daq_module.set("save/filename", self.filename)
-            # 'save/saveonread' - Automatically save the data
-            # to file each time read() is called.
-            self.daq_module.set("save/saveonread", 1)
+        # if self.filename:
+        #     # 'save/fileformat' - The file format to use for the saved data.
+        #     #    0 - Matlab
+        #     #    1 - CSV
+        #     self.daq_module.set("save/fileformat", 1)
+        #     # 'save/filename' - Each file will be saved to a
+        #     # new directory in the Zurich Instruments user directory with the name
+        #     # filename_NNN/filename_NNN/
+        #     self.daq_module.set("save/filename", self.filename)
+        #     # 'save/saveonread' - Automatically save the data
+        #     # to file each time read() is called.
+        #     self.daq_module.set("save/saveonread", 1)
 
 
         # A dictionary to store all the acquired data.
-        for signal_path in self.signal_paths:
-            print("Subscribing to ", signal_path)
-            self.daq_module.subscribe(signal_path)
-            self.data_dev[signal_path] = []
+        # for signal_path in self.signal_paths:
+        #     print("Subscribing to ", signal_path)
+        #     self.daq_module.subscribe(signal_path)
+        #     self.data_dev[signal_path] = []
 
         self.clockbase = float(self.daq.getInt(f'/{self.device}/clockbase'))
 
         if self.plot:
             # self.lock_in_gw.setBackground('#581845')
-            styles = {"color": "#FFC300", "font-size": "15px"}
 
+            styles = {"color": "#FFC300", "font-size": "15px"}
             self.lock_in_gw.setLabel("left", "Voltage (U)", **styles)
             self.lock_in_gw.setLabel("bottom", "Time (s)", **styles)
-            # self.lock_in_gw.setXRange(0, total_duration, padding=0)
 
-            ts0 = np.nan
-            self.read_count = 0
+            # Добавление сетки
+            self.lock_in_gw.showGrid(x=True, y=True, alpha=0.5)  # Включение сетки с прозрачностью
 
-        # Start recording data.
-        self.daq_module.execute()
+
+        #     # self.lock_in_gw.setXRange(0, total_duration, padding=0)
         #
-        # # Record data in a loop with timeout.
-        timeout = 1.5 * total_duration
-        t0_measurement = time.time()
-        # The maximum time to wait before reading out new data.
-        t_update = 0.9 * burst_duration
-        while not self.daq_module.finished():
-            t0_loop = time.time()
-            if time.time() - t0_measurement > timeout:
-                raise Exception(
-                    f"Timeout after {timeout} s - recording not complete."
-                    "Are the streaming nodes enabled?"
-                    "Has a valid signal_path been specified?"
-                )
-            self.data_dev, ts0 = self.read_data_update_plot(self.data_dev, ts0)
-            self.read_count += 1
-            # We don't need to update too quickly.
-            time.sleep(max(0, t_update - (time.time() - t0_loop)))
+        #     ts0 = np.nan
+        #     self.read_count = 0
+
+        # # Start recording data.
+        # self.daq_module.execute()
+        # #
+        # # # Record data in a loop with timeout.
+        # timeout = 1.5 * total_duration
+        # t0_measurement = time.time()
+        # # The maximum time to wait before reading out new data.
+        # t_update = 0.9 * burst_duration
+        # while not self.daq_module.finished():
+        #     t0_loop = time.time()
+        #     if time.time() - t0_measurement > timeout:
+        #         raise Exception(
+        #             f"Timeout after {timeout} s - recording not complete."
+        #             "Are the streaming nodes enabled?"
+        #             "Has a valid signal_path been specified?"
+        #         )
+        #     self.data_dev, ts0 = self.read_data_update_plot(self.data_dev, ts0)
+        #     self.read_count += 1
+        #     # We don't need to update too quickly.
+        #     time.sleep(max(0, t_update - (time.time() - t0_loop)))
+        # #
+        # # There may be new data between the last read() and calling finished().
+        # self.data_dev, _ = self.read_data_update_plot(self.data_dev, ts0)
         #
-        # There may be new data between the last read() and calling finished().
-        self.data_dev, _ = self.read_data_update_plot(self.data_dev, ts0)
+        # # Before exiting, make sure that saving to file is complete (it's done in the background)
+        # # by testing the 'save/save' parameter.
+        # timeout = 1.5 * total_duration
+        # t0 = time.time()
+        # while self.daq_module.getInt("save/save") != 0:
+        #     time.sleep(0.1)
+        #     if time.time() - t0 > timeout:
+        #         raise Exception(f"Timeout after {timeout} s before data save completed.")
+        #
+        # if not self.plot:
+        #     print("Please run with `plot` to see dynamic plotting of the acquired signals.")
 
-        # Before exiting, make sure that saving to file is complete (it's done in the background)
-        # by testing the 'save/save' parameter.
-        timeout = 1.5 * total_duration
-        t0 = time.time()
-        while self.daq_module.getInt("save/save") != 0:
-            time.sleep(0.1)
-            if time.time() - t0 > timeout:
-                raise Exception(f"Timeout after {timeout} s before data save completed.")
-
-        if not self.plot:
-            print("Please run with `plot` to see dynamic plotting of the acquired signals.")
+        self.start_continuous_plotting()
 
 # ----------------------------------------------------------------------------------------------------------------------
 
@@ -652,11 +664,11 @@ class MagnetCFU(QMainWindow):
         # Connect lock-in button
         self.le_freq.setMaxLength(13)
 
-        self.upd_freq_timer.setInterval(500)
-        self.upd_freq_timer.timeout.connect(self.changed_freq)
-        self.upd_freq_timer.start()
-
-        QTimer.singleShot(5000, self.stop_selection)
+        # self.upd_freq_timer.setInterval(500)
+        # self.upd_freq_timer.timeout.connect(self.changed_freq)
+        # self.upd_freq_timer.start()
+        #
+        # QTimer.singleShot(5000, self.stop_selection)
 
         self.le_range.textChanged.connect        (self.changed_range)
         self.le_scaling.textChanged.connect      (self.changed_scaling)
@@ -1160,52 +1172,216 @@ class MagnetCFU(QMainWindow):
 
         return data_v, data_i
 
-    def read_data_update_plot(self, data_dev, timestamp0):
-        """
-        Read the acquired data out from the module and plot it. Raise an
-        AssertionError if no data is returned.
-        """
-        data_read = self.daq_module.read(True)
-        returned_signal_paths = [
-            signal_path.lower() for signal_path in data_read.keys()
-        ]
-        progress = self.daq_module.progress()[0]
-        # Loop over all the subscribed signals:
-        for signal_path in self.signal_paths:
-            if signal_path.lower() in returned_signal_paths:
-                # Loop over all the bursts for the subscribed signal. More than
-                # one burst may be returned at a time, in particular if we call
-                # read() less frequently than the burst_duration.
-                for index, signal_burst in enumerate(data_read[signal_path.lower()]):
-                    if np.any(np.isnan(timestamp0)):
-                        # Set our first timestamp to the first timestamp we obtain.
-                        timestamp0 = signal_burst["timestamp"][0, 0]
-                    # Convert from device ticks to time in seconds.
-                    t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
-                    value = signal_burst["value"][0, :]
-                    if self.plot:
-                        self.data_line = self.lock_in_gw.plot(t, value)
-                    num_samples = len(signal_burst["value"][0, :])
-                    dt = (
-                                 signal_burst["timestamp"][0, -1]
-                                 - signal_burst["timestamp"][0, 0]
-                         ) / self.clockbase
-                    data_dev[signal_path].append(signal_burst)
 
-                    print(
-                        f"Read: {self.read_count}, progress: {100 * progress:.2f}%.",
-                        f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
-                    )
-            else:
-                # Note: If we read before the next burst has finished, there may be no new data.
-                # No action required.
-                pass
+
+    def start_continuous_plotting(self):
+
+        if not self.daq_module or not self.device:
+            raise ValueError("DAQ module или устройство не инициализированы.")
+
+        self.daq_module.set("device", self.device)
+        self.daq_module.set("type", 0)  # Непрерывная запись
+        self.daq_module.set("endless", 1)
+        self.daq_module.set("grid/mode", 2)
+        self.daq_module.set("duration", 0.1)  # Продолжительность одного блока (секунды)
+        self.daq_module.set("grid/cols", 500)  # Количество точек
+        self.daq_module.set("count", 0)  # Непрерывный сбор данных
+        self.daq_module.execute()
+
+        # for signal_path in self.signal_paths:
+        #     print("Subscribing to ", signal_path)
+        #     self.daq_module.subscribe(signal_path)
+        #     self.data_dev[signal_path] = []
         #
-        # Update the plot.
-        if self.plot:
-            # self.timer.setInterval(50)
-            # self.timer.start()
-            self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
-            # plt.pause(0.01)
+        # self.timer_lock_in.start()
+
+        # Subscribe to signal paths and initialize data storage
+        for signal_path in self.signal_paths:
+            signal_path_lower = signal_path.lower()
+            print(f"Subscribing to {signal_path}")
+            self.daq_module.subscribe(signal_path_lower)
+            self.data_dev[signal_path] = []
+
+        # Ensure timestamp0 is initialized for new acquisition
+        self.timestamp0 = None
+
+        # Start the timer for periodic updates
+        if hasattr(self, "timer_lock_in"):
+            self.timer_lock_in.start()
+        else:
+            raise AttributeError("Timer для обновления данных не настроен.")
+
+    def update_lock_in_data(self):
+        """
+        Updates the data in real-time by reading from the DAQ module
+        and updating the plot.
+        """
+
+        try:
+            # Ensure timestamp0 is initialized
+            if not hasattr(self, "timestamp0"):
+                self.timestamp0 = None
+
+            # Read and update data
+            self.data_dev, self.timestamp0 = self.read_data_update_plot(self.data_dev, self.timestamp0)
+
+            # Restart the DAQ module if progress indicates completion
+            if self.daq_module.progress()[0] >= 1.0:
+                self.daq_module.finish()  # Finish the current iteration
+                self.daq_module.execute()  # Restart the module for continuous acquisition
+
+        except Exception as e:
+            # Stop the timer and report the error
+            print(f"Ошибка при обновлении графика: {e}")
+            if hasattr(self, "timer_lock_in"):
+                self.timer_lock_in.stop()
+            raise e
+
+    def stop_continuous_plotting(self):
+
+        if not self.daq_module or not self.device:
+            raise ValueError("DAQ module или устройство не инициализированы.")
+
+        self.timer_lock_in.start()
+
+    def read_data_update_plot(self, data_dev, timestamp0):
+
+        """
+        Read and process the acquired data, updating the plot as necessary.
+        """
+
+        # Read new data from the acquisition module
+        data_read = self.daq_module.read(flat=True)
+        returned_signal_paths = {signal_path.lower() for signal_path in data_read.keys()}
+
+        for signal_path in self.signal_paths:
+            signal_path_lower = signal_path.lower()
+
+            if signal_path_lower in returned_signal_paths:
+                for signal_burst in data_read[signal_path_lower]:
+                    # Initialize the starting timestamp if needed
+                    if timestamp0 is None or (isinstance(timestamp0, (float, int)) and np.isnan(timestamp0)):
+                        timestamp0 = signal_burst["timestamp"][0, 0]
+
+                    # Extract time and value, converting timestamp to seconds
+                    t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+                    values = signal_burst["value"][0, :]
+
+                    # Append new data to the signal's dataset
+                    data_dev[signal_path].extend(values.tolist())
+
+                    # Update or initialize the plot for this signal
+                    if self.plot:
+                        # Initialize the plot line if it doesn't exist
+                        if not hasattr(self, f"data_line_{signal_path}"):
+                            setattr(self, f"data_line_{signal_path}",
+                                    self.lock_in_gw.plot([], [], pen={'color': 'w', 'width': 1.5}))
+
+                        # Retrieve the plot line for the current signal
+                        data_line = getattr(self, f"data_line_{signal_path}")
+
+                        # Update the plot with new data
+                        data_line.setData(
+                            np.append(data_line.xData, t),
+                            np.append(data_line.yData, values)
+                        )
+
         return data_dev, timestamp0
+
+# старый рабочий вариант
+        # data_read = self.daq_module.read(flat=True)  # Считывание новых данных
+        # returned_signal_paths = [
+        #     signal_path.lower() for signal_path in data_read.keys()
+        # ]
+        #
+        # for signal_path in self.signal_paths:
+        #     if signal_path.lower() in returned_signal_paths:
+        #         for index, signal_burst in enumerate(data_read[signal_path.lower()]):
+        #             if timestamp0 is None or (isinstance(timestamp0, (float, int)) and np.isnan(timestamp0)):
+        #                 timestamp0 = signal_burst["timestamp"][0, 0]  # Время старта
+        #
+        #             # Преобразование временной метки в секунды
+        #             t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+        #             value = signal_burst["value"][0, :]
+        #
+        #             # Сохранение данных
+        #             data_dev[signal_path].extend(signal_burst["value"][0, :].tolist())  # Добавление точек на график
+        #
+        #             # Обновление графика
+        #             if self.plot:
+        #                 self.lock_in_gw.plot([], [], pen={'color': 'w', 'width': 1.5})
+        #
+        #
+        #                 # Если график ещё не создан — инициализация
+        #                 if not hasattr(self, f"data_line_{signal_path}"):
+        #                     setattr(self, f"data_line_{signal_path}",
+        #                             self.lock_in_gw.plot([], [] )) # pen={'color':'w', 'width':1.5}))
+        #
+        #
+        #                 data_line = getattr(self, f"data_line_{signal_path}")
+        #                 # data_line_x = getattr(self, f"data_line_{signal_path}")
+        #                 # data_line_y = getattr(self, f"data_line_{signal_path}")
+        #
+        #                 # Добавляем новые точки (объединяем старые и новые)
+        #
+        #                 data_line.setData(
+        #                     np.append(data_line.xData, t),
+        #                     np.append(data_line.yData, value)
+        #                 )
+        #
+        # # Обновляем заголовок графика с прогрессом
+        # if self.plot:
+        #     progress = self.daq_module.progress()[0]
+        #     self.lock_in_gw.setTitle(f"Progress: {100 * progress:.2f}%")
+        #
+        # return data_dev, timestamp0
+
+    # def read_data_update_plot(self, data_dev, timestamp0):
+    #     """
+    #     Read the acquired data out from the module and plot it. Raise an
+    #     AssertionError if no data is returned.
+    #     """
+    #     data_read = self.daq_module.read(True)
+    #     returned_signal_paths = [
+    #         signal_path.lower() for signal_path in data_read.keys()
+    #     ]
+    #     progress = self.daq_module.progress()[0]
+    #     # Loop over all the subscribed signals:
+    #     for signal_path in self.signal_paths:
+    #         if signal_path.lower() in returned_signal_paths:
+    #             # Loop over all the bursts for the subscribed signal. More than
+    #             # one burst may be returned at a time, in particular if we call
+    #             # read() less frequently than the burst_duration.
+    #             for index, signal_burst in enumerate(data_read[signal_path.lower()]):
+    #                 if np.any(np.isnan(timestamp0)):
+    #                     # Set our first timestamp to the first timestamp we obtain.
+    #                     timestamp0 = signal_burst["timestamp"][0, 0]
+    #                 # Convert from device ticks to time in seconds.
+    #                 t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+    #                 value = signal_burst["value"][0, :]
+    #                 if self.plot:
+    #                     self.data_line = self.lock_in_gw.plot(t, value)
+    #                 num_samples = len(signal_burst["value"][0, :])
+    #                 dt = (
+    #                              signal_burst["timestamp"][0, -1]
+    #                              - signal_burst["timestamp"][0, 0]
+    #                      ) / self.clockbase
+    #                 data_dev[signal_path].append(signal_burst)
+    #
+    #                 # print(
+    #                 #     f"Read: {self.read_count}, progress: {100 * progress:.2f}%.",
+    #                 #     f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
+    #                 # )
+    #         else:
+    #             # Note: If we read before the next burst has finished, there may be no new data.
+    #             # No action required.
+    #             pass
+    #     #
+    #     # Update the plot.
+    #     if self.plot:
+    #         # self.timer.setInterval(50)
+    #         # self.timer.start()
+    #         self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
+    #         # plot.pause(0.01)
+    #     return data_dev, timestamp0
 
