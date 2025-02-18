@@ -55,7 +55,7 @@ class MagnetCFU(QMainWindow):
         self.lock_in_plot     = self.graph_layout.addPlot(row=1, col=0)
         self.hysteresis_plot  = self.graph_layout.addPlot(row=2, col=0)
 
-        self._setup_plots()
+
 
         # self.graph_widget     = pg.PlotWidget()
         # self.lock_in_gw       = pg.PlotWidget()
@@ -66,7 +66,11 @@ class MagnetCFU(QMainWindow):
         self.timer_lock_in.timeout.connect(self.update_lock_in_data)
         self.timer_lock_in.setInterval(10)
 
+        self.time_window = 10
+        self.max_history = 1000
+        self.data_buffer = {}
 
+        self._setup_plots()
 
         # self.timer_mang       = QTimer()
         # self.upd_freq_timer   = QTimer()
@@ -1191,10 +1195,10 @@ class MagnetCFU(QMainWindow):
 
         self.daq_module.set("device", self.device)
         self.daq_module.set("type", 0)  # Непрерывная запись
-        self.daq_module.set("endless", 1)
+        # self.daq_module.set("endless", 1)
         self.daq_module.set("grid/mode", 2)
         self.daq_module.set("duration", 0.1)  # Продолжительность одного блока (секунды)
-        self.daq_module.set("grid/cols", 500)  # Количество точек
+        self.daq_module.set("grid/cols", 1)  # Количество точек
         self.daq_module.set("count", 0)  # Непрерывный сбор данных
         self.daq_module.execute()
 
@@ -1210,10 +1214,11 @@ class MagnetCFU(QMainWindow):
             signal_path_lower = signal_path.lower()
             print(f"Subscribing to {signal_path}")
             self.daq_module.subscribe(signal_path_lower)
-            self.data_dev[signal_path] = []
+            # self.data_dev[signal_path] = []
+            self.data_buffer[signal_path] = {'time': np.array([]), 'values': np.array([])}
 
         # Ensure timestamp0 is initialized for new acquisition
-        self.timestamp0 = None
+        # self.timestamp0 = None
 
         # Start the timer for periodic updates
         if hasattr(self, "timer_lock_in"):
@@ -1227,13 +1232,99 @@ class MagnetCFU(QMainWindow):
         and updating the plot.
         """
 
+        #
+        # try:
+        #     data_read = self.daq_module.read(flat=True)
+        #
+        #     for signal_path in self.signal_paths:
+        #         signal_data = self.process_signal(data_read, signal_path)
+        #
+        #         if signal_path not in self.data_buffer:
+        #             self.data_buffer[signal_path] = {
+        #                 'time': np.array([]),
+        #                 'values': np.array([])
+        #             }
+        #         self.data_buffer[signal_path]['time'] = np.concatenate((
+        #             self.data_buffer[signal_path]['time'],
+        #             signal_data['time']
+        #         ))
+        #
+        #         self.data_buffer[signal_path]['values'] = np.concatenate((
+        #             self.data_buffer[signal_path]['values'],
+        #             signal_data['values']
+        #         ))
+        #
+        #         cutoff = self.data_buffer[signal_path]['time'][-1] - self.max_history
+        #         mask = self.data_buffer[signal_path]['time'] >= cutoff
+        #         self.data_buffer[signal_path]['time'] = self.data_buffer[signal_path]['time'][mask]
+        #         self.data_buffer[signal_path]['values'] = self.data_buffer[signal_path]['values'][mask]
+        #
+        #         if self.plot:
+        #             if not hasattr(self, f"data_line_{signal_path}"):
+        #                 setattr(self, f"data_line_{signal_path}",
+        #                     self.lock_in_plot.plot(pen=pg.mkPen(color='w', width=1.5)))
+        #
+        #             line = getattr(self, f"data_line_{signal_path}")
+        #             line.setData(
+        #                 self.data_buffer[signal_path]['time'],
+        #                 self.data_buffer[signal_path]['values']
+        #             )
+        #     if self.auto_scroll:
+        #         current_time = self.data_buffer[self.signal_paths[0]]['time'][-1]
+        #         self.lock_in_plot.setXRange(current_time - self.time_window, current_time)
+        #
+        # except Exception as e:
+        #     print(f"Error updating plot: {e}")
+
+
+
         try:
             # Ensure timestamp0 is initialized
             if not hasattr(self, "timestamp0"):
                 self.timestamp0 = None
 
             # Read and update data
-            self.data_dev, self.timestamp0 = self.read_data_update_plot(self.data_dev, self.timestamp0)
+            # self.data_dev, self.timestamp0 = self.read_data_update_plot(self.data_dev, self.timestamp0)
+
+            data_read = self.daq_module.read(flat=True)
+
+            for signal_path in self.signal_paths:
+                signal_data = self.process_signal(data_read, signal_path)
+
+                if signal_path not in self.data_buffer:
+                    self.data_buffer[signal_path] = {
+                        'time': np.array([]),
+                        'values': np.array([])
+                    }
+                self.data_buffer[signal_path]['time'] = np.concatenate((
+                    self.data_buffer[signal_path]['time'],
+                    signal_data['time']
+                ))
+
+                self.data_buffer[signal_path]['values'] = np.concatenate((
+                    self.data_buffer[signal_path]['values'],
+                    signal_data['values']
+                ))
+
+                cutoff = self.data_buffer[signal_path]['time'][-1] - self.max_history
+                mask = self.data_buffer[signal_path]['time'] >= cutoff
+                self.data_buffer[signal_path]['time'] = self.data_buffer[signal_path]['time'][mask]
+                self.data_buffer[signal_path]['values'] = self.data_buffer[signal_path]['values'][mask]
+
+                if self.plot:
+                    if not hasattr(self, f"data_line_{signal_path}"):
+                        setattr(self, f"data_line_{signal_path}",
+                            self.lock_in_plot.plot(pen=pg.mkPen(color='w', width=1.5)))
+
+                    line = getattr(self, f"data_line_{signal_path}")
+                    line.setData(
+                        self.data_buffer[signal_path]['time'],
+                        self.data_buffer[signal_path]['values']
+                    )
+            if self.auto_scroll:
+                current_time = self.data_buffer[self.signal_paths[0]]['time'][-1]
+                self.lock_in_plot.setXRange(current_time - self.time_window, current_time)
+
 
             # Restart the DAQ module if progress indicates completion
             if self.daq_module.progress()[0] >= 1.0:
@@ -1277,6 +1368,9 @@ class MagnetCFU(QMainWindow):
                     t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
                     values = signal_burst["value"][0, :]
 
+                    # print(np.shape(values))
+                    # print(f"Data for {signal_path}: t={t}, values={values}")
+
                     # Append new data to the signal's dataset
                     data_dev[signal_path].extend(values.tolist())
 
@@ -1312,6 +1406,8 @@ class MagnetCFU(QMainWindow):
 
         self.label = pg.LabelItem(justify='right')
         self.graph_layout.addItem(self.label, row=0, col=0)
+        # self.lock_in_plot.avgPen = pg.mkPen('#FFFFFF')
+        # self.lock_in_plot.avgShadowPen = pg.mkPen('#8080DD', width=10)
 
         self.v_line = pg.InfiniteLine(angle=90, movable=False)
         self.h_line = pg.InfiniteLine(angle=0, movable=False)
@@ -1319,21 +1415,42 @@ class MagnetCFU(QMainWindow):
         self.lock_in_plot.addItem(self.h_line)
 
         self.lock_in_plot.scene().sigMouseMoved.connect(self.mouse_moved)
+        self.lock_in_plot.sigRangeChanged.connect(self.handle_zoom)
+
+        self.lock_in_plot.setXRange(-self.time_window, 0)
+        self.lock_in_plot.setLimits(xMin=-self.max_history, xMax=0)
+
+        self.auto_scroll = True
+
+        self.lock_in_plot.setDownsampling(auto=True, mode='peak')
 
     def mouse_moved(self, evt):
         pos = evt
         if self.lock_in_plot.sceneBoundingRect().contains(pos):
             mouse_point = self.lock_in_plot.vb.mapSceneToView(pos)
             x = mouse_point.x()
-            y = mouse_point.y()
+            y1 = mouse_point.y()
+            y2 = mouse_point.y()
 
             self.label.setText(
-                f"<span style='font-size: 12pt; color: white'>"
-                f"X: {x:.2f}, Y: {y:.2f}</span>"
+                f"<span style='font-size: 12pt; color: orange'>"
+                f"X: {x:.2f}, Y: {y1:.2f}, Y2: {y2:.2f}</span>"
             )
 
             self.v_line.setPos(x)
-            self.h_line.setPos(y)
+            self.h_line.setPos(y1)
+            self.h_line.setPos(y2)
+
+    def handle_zoom(self, window, view_range):
+        x_start, x_end = view_range[0]
+        self.auto_scroll = (x_end >= -0.1)
+
+    def process_signal(self, data, signal_path):
+        current_time = time.time()
+        return {
+            'time': np.array([current_time]),
+            'values': np.array([data[signal_path]])
+        }
 
 # старый рабочий вариант
         # data_read = self.daq_module.read(flat=True)  # Считывание новых данных
