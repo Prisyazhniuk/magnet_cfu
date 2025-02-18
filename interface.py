@@ -4,6 +4,7 @@ import time
 import numpy as np
 import pyqtgraph as pg
 
+from contextlib import contextmanager
 from pathlib import Path
 from zhinst.toolkit import Session
 from zhinst.core import ziListEnum, ziDiscovery, ziDAQServer
@@ -42,15 +43,23 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    upd_freq = pyqtSignal(str)
+    upd_freq = pyqtSignal(str)  # возможно, надо удалить
+    version_app = '0.1.0'
+    date_build  = '18.02.2025'
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
 
         self.port             = QSerialPort()
-        self.graph_widget     = pg.PlotWidget()
-        self.lock_in_gw       = pg.PlotWidget()
-        self.hysteresis_graph = pg.PlotWidget()
+        self.graph_layout     = pg.GraphicsLayoutWidget()
+        self.lock_in_plot     = self.graph_layout.addPlot(row=1, col=0)
+        self.hysteresis_plot  = self.graph_layout.addPlot(row=2, col=0)
+
+        self._setup_plots()
+
+        # self.graph_widget     = pg.PlotWidget()
+        # self.lock_in_gw       = pg.PlotWidget()
+        # self.hysteresis_graph = pg.PlotWidget()
 
 
         self.timer_lock_in      = QTimer()
@@ -193,16 +202,16 @@ class MagnetCFU(QMainWindow):
         #     self.data_dev[signal_path] = []
 
         self.clockbase = float(self.daq.getInt(f'/{self.device}/clockbase'))
-
-        if self.plot:
-            # self.lock_in_gw.setBackground('#581845')
-
-            styles = {"color": "#FFC300", "font-size": "15px"}
-            self.lock_in_gw.setLabel("left", "Voltage (U)", **styles)
-            self.lock_in_gw.setLabel("bottom", "Time (s)", **styles)
-
-            # Добавление сетки
-            self.lock_in_gw.showGrid(x=True, y=True, alpha=0.5)  # Включение сетки с прозрачностью
+        #
+        # if self.plot:
+        #     # self.lock_in_gw.setBackground('#581845')
+        #
+        #     styles = {"color": "#FFC300", "font-size": "15px"}
+        #     self.lock_in_gw.setLabel("left", "Voltage (U)", **styles)
+        #     self.lock_in_gw.setLabel("bottom", "Time (s)", **styles)
+        #
+        #     # Добавление сетки
+        #     self.lock_in_gw.showGrid(x=True, y=True, alpha=0.5)  # Включение сетки с прозрачностью
 
 
         #     # self.lock_in_gw.setXRange(0, total_duration, padding=0)
@@ -286,7 +295,7 @@ class MagnetCFU(QMainWindow):
         self.box_01         = QGroupBox("Info")
         self.box_02         = QGroupBox("Value")
         self.box_03         = QGroupBox("Control")
-        self.box_04         = QGroupBox("Hysteresis")
+        # self.box_04         = QGroupBox("Hysteresis")
         self.box_lock_in    = QGroupBox("Lock-in")
 
         self.lbl_volt.setFixedSize(45, 40)
@@ -375,25 +384,26 @@ class MagnetCFU(QMainWindow):
         outer_vlayout = QVBoxLayout()
         outer_hlayout = QHBoxLayout()
         hyst_outer    = QVBoxLayout()
-        hyst_layout   = QVBoxLayout()
+        # hyst_layout   = QVBoxLayout()
         lock_in       = QVBoxLayout()
         top_layout    = QGridLayout()
         middle_layout = QGridLayout()
         bottom_layout = QGridLayout()
 
-        bottom_sp.setFixedSize(100, 130)
+        # bottom_sp.setFixedSize(100, 130)
 
-        hyst_layout.addWidget(self.hysteresis_graph)
-        lock_in.addWidget(self.lock_in_gw)
+        # hyst_layout.addWidget(self.hysteresis_graph)
+        lock_in.addWidget(self.graph_layout)
+        # lock_in.addWidget(self.lock_in_gw)
 
-        self.box_04.setFixedSize(500, 300)
-        self.box_04.setLayout(hyst_layout)
-        self.box_lock_in.setFixedSize(500, 300)
+        # self.box_04.setFixedSize(500, 300)
+        # self.box_04.setLayout(hyst_layout)
+        # self.box_lock_in.setFixedSize(500, 300)
         self.box_lock_in.setLayout(lock_in)
 
-        hyst_outer.addWidget(self.box_04)
+        # hyst_outer.addWidget(self.box_04)
         hyst_outer.addWidget(self.box_lock_in)
-        hyst_outer.addWidget(bottom_sp)
+        # hyst_outer.addWidget(bottom_sp)
 
         self.setStatusBar(QStatusBar())
         self.status_text = QLabel()
@@ -909,7 +919,7 @@ class MagnetCFU(QMainWindow):
         # print(self.real_volt, self.real_curr)
 
         #self.timer.timeout.connect(self.read_and_update_data())
-        self.read_and_update_data()
+        # self.read_and_update_data() # метод был создан для построения гистерезиса. до конца не реализован
 
 
         self.port.close()
@@ -1148,11 +1158,11 @@ class MagnetCFU(QMainWindow):
         y = pos.y()
         self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
 
-    def read_and_update_data(self):
-
-        self.real_curr, self.real_volt = self.get_device_data()
-
-        self.hysteresis_graph.plot(self.real_curr, self.real_volt, pen='b', clear=True)
+    # def read_and_update_data(self):
+    #
+    #     self.real_curr, self.real_volt = self.get_device_data()
+    #
+    #     self.hysteresis_graph.plot(self.real_curr, self.real_volt, pen='b', clear=True)
 
     def get_device_data(self):
 
@@ -1275,7 +1285,8 @@ class MagnetCFU(QMainWindow):
                         # Initialize the plot line if it doesn't exist
                         if not hasattr(self, f"data_line_{signal_path}"):
                             setattr(self, f"data_line_{signal_path}",
-                                    self.lock_in_gw.plot([], [], pen={'color': 'w', 'width': 1.5}))
+                                    # self.lock_in_gw.plot([], [], pen={'color': 'w', 'width': 1.5}))
+                                    self.lock_in_plot.plot([], [], pen={'color': 'w', 'width': 1.5}))
 
                         # Retrieve the plot line for the current signal
                         data_line = getattr(self, f"data_line_{signal_path}")
@@ -1287,6 +1298,42 @@ class MagnetCFU(QMainWindow):
                         )
 
         return data_dev, timestamp0
+
+    def _setup_plots(self):
+        label_style = {'color': '#FFC300', 'font-size': '12px'}
+
+        self.lock_in_plot.setLabel('left', 'Voltage', **label_style)
+        self.lock_in_plot.setLabel('bottom', 'Time', **label_style)
+        self.lock_in_plot.showGrid(x=True, y=True, alpha=0.3)
+
+        self.hysteresis_plot.setLabel('left', 'Voltage', **label_style)
+        self.hysteresis_plot.setLabel('bottom', 'Current', **label_style)
+        self.hysteresis_plot.showGrid(x=True, y=True, alpha=0.3)
+
+        self.label = pg.LabelItem(justify='right')
+        self.graph_layout.addItem(self.label, row=0, col=0)
+
+        self.v_line = pg.InfiniteLine(angle=90, movable=False)
+        self.h_line = pg.InfiniteLine(angle=0, movable=False)
+        self.lock_in_plot.addItem(self.v_line)
+        self.lock_in_plot.addItem(self.h_line)
+
+        self.lock_in_plot.scene().sigMouseMoved.connect(self.mouse_moved)
+
+    def mouse_moved(self, evt):
+        pos = evt
+        if self.lock_in_plot.sceneBoundingRect().contains(pos):
+            mouse_point = self.lock_in_plot.vb.mapSceneToView(pos)
+            x = mouse_point.x()
+            y = mouse_point.y()
+
+            self.label.setText(
+                f"<span style='font-size: 12pt; color: white'>"
+                f"X: {x:.2f}, Y: {y:.2f}</span>"
+            )
+
+            self.v_line.setPos(x)
+            self.h_line.setPos(y)
 
 # старый рабочий вариант
         # data_read = self.daq_module.read(flat=True)  # Считывание новых данных
