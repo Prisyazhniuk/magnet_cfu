@@ -44,8 +44,8 @@ def rev_decimal_range(start, stop, increment):
 
 class MagnetCFU(QMainWindow):
     upd_freq = pyqtSignal(str)  # возможно, надо удалить
-    version_app = '0.1.0'
-    date_build  = '18.02.2025'
+    version_app = '0.1.1'
+    date_build  = '19.02.2025'
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
@@ -1195,9 +1195,9 @@ class MagnetCFU(QMainWindow):
 
         self.daq_module.set("device", self.device)
         self.daq_module.set("type", 0)  # Непрерывная запись
-        # self.daq_module.set("endless", 1)
+        self.daq_module.set("endless", 0)
         self.daq_module.set("grid/mode", 2)
-        self.daq_module.set("duration", 0.1)  # Продолжительность одного блока (секунды)
+        self.daq_module.set("duration", 1)  # Продолжительность одного блока (секунды)
         self.daq_module.set("grid/cols", 1)  # Количество точек
         self.daq_module.set("count", 0)  # Непрерывный сбор данных
         self.daq_module.execute()
@@ -1214,11 +1214,11 @@ class MagnetCFU(QMainWindow):
             signal_path_lower = signal_path.lower()
             print(f"Subscribing to {signal_path}")
             self.daq_module.subscribe(signal_path_lower)
-            # self.data_dev[signal_path] = []
-            self.data_buffer[signal_path] = {'time': np.array([]), 'values': np.array([])}
+            self.data_dev[signal_path] = []
+            # self.data_buffer[signal_path] = {'time': np.array([]), 'values': np.array([])}
 
         # Ensure timestamp0 is initialized for new acquisition
-        # self.timestamp0 = None
+        self.timestamp0 = None
 
         # Start the timer for periodic updates
         if hasattr(self, "timer_lock_in"):
@@ -1284,47 +1284,7 @@ class MagnetCFU(QMainWindow):
                 self.timestamp0 = None
 
             # Read and update data
-            # self.data_dev, self.timestamp0 = self.read_data_update_plot(self.data_dev, self.timestamp0)
-
-            data_read = self.daq_module.read(flat=True)
-
-            for signal_path in self.signal_paths:
-                signal_data = self.process_signal(data_read, signal_path)
-
-                if signal_path not in self.data_buffer:
-                    self.data_buffer[signal_path] = {
-                        'time': np.array([]),
-                        'values': np.array([])
-                    }
-                self.data_buffer[signal_path]['time'] = np.concatenate((
-                    self.data_buffer[signal_path]['time'],
-                    signal_data['time']
-                ))
-
-                self.data_buffer[signal_path]['values'] = np.concatenate((
-                    self.data_buffer[signal_path]['values'],
-                    signal_data['values']
-                ))
-
-                cutoff = self.data_buffer[signal_path]['time'][-1] - self.max_history
-                mask = self.data_buffer[signal_path]['time'] >= cutoff
-                self.data_buffer[signal_path]['time'] = self.data_buffer[signal_path]['time'][mask]
-                self.data_buffer[signal_path]['values'] = self.data_buffer[signal_path]['values'][mask]
-
-                if self.plot:
-                    if not hasattr(self, f"data_line_{signal_path}"):
-                        setattr(self, f"data_line_{signal_path}",
-                            self.lock_in_plot.plot(pen=pg.mkPen(color='w', width=1.5)))
-
-                    line = getattr(self, f"data_line_{signal_path}")
-                    line.setData(
-                        self.data_buffer[signal_path]['time'],
-                        self.data_buffer[signal_path]['values']
-                    )
-            if self.auto_scroll:
-                current_time = self.data_buffer[self.signal_paths[0]]['time'][-1]
-                self.lock_in_plot.setXRange(current_time - self.time_window, current_time)
-
+            self.data_dev, self.timestamp0 = self.read_data_update_plot(self.data_dev, self.timestamp0)
 
             # Restart the DAQ module if progress indicates completion
             if self.daq_module.progress()[0] >= 1.0:
@@ -1373,6 +1333,9 @@ class MagnetCFU(QMainWindow):
 
                     # Append new data to the signal's dataset
                     data_dev[signal_path].extend(values.tolist())
+                    signal_x = values[0]
+                    sygnal_y = values[1]
+                    # print(signal_x)
 
                     # Update or initialize the plot for this signal
                     if self.plot:
@@ -1386,10 +1349,23 @@ class MagnetCFU(QMainWindow):
                         data_line = getattr(self, f"data_line_{signal_path}")
 
                         # Update the plot with new data
-                        data_line.setData(
-                            np.append(data_line.xData, t),
-                            np.append(data_line.yData, values)
-                        )
+                        # data_line.setData(
+                        #     np.append(data_line.xData, -t),
+                        #     np.append(data_line.yData, values)
+                        # )
+                        t_data = np.append(data_line.xData, t)
+                        y_data = np.append(data_line.yData, values)
+
+
+                        # y1 = np.append(new_y_data[-2], values)
+                        # y2 = new_y_data[-1]
+                        # print(y1, y2)
+
+                        # Update the plot with the filtered data
+                        data_line.setData(t_data, y_data)
+                        # print(new_y_data)
+
+
 
         return data_dev, timestamp0
 
@@ -1416,11 +1392,11 @@ class MagnetCFU(QMainWindow):
 
         self.lock_in_plot.scene().sigMouseMoved.connect(self.mouse_moved)
         self.lock_in_plot.sigRangeChanged.connect(self.handle_zoom)
-
-        self.lock_in_plot.setXRange(-self.time_window, 0)
-        self.lock_in_plot.setLimits(xMin=-self.max_history, xMax=0)
-
-        self.auto_scroll = True
+        #
+        # self.lock_in_plot.setXRange(-self.time_window, 0)
+        # self.lock_in_plot.setLimits(xMin=-self.max_history, xMax=0)
+        #
+        # self.auto_scroll = True
 
         self.lock_in_plot.setDownsampling(auto=True, mode='peak')
 
