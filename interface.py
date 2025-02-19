@@ -44,7 +44,7 @@ def rev_decimal_range(start, stop, increment):
 
 class MagnetCFU(QMainWindow):
     upd_freq = pyqtSignal(str)  # возможно, надо удалить
-    version_app = '0.1.1'
+    version_app = '0.1.2'
     date_build  = '19.02.2025'
 
     def __init__(self, parent=None):
@@ -861,8 +861,39 @@ class MagnetCFU(QMainWindow):
     def flow_control(self):
         return self.cb_flow_control.currentIndex()
 
-    def receive_port(self):
+    def init_port(self):
+        if not QSerialPortInfo.availablePorts():
+            self.status_text.setText("no ports")
+
+        self.port.setPortName(self.cb_COM.currentText())
+        self.port.setBaudRate(int(self.cb_baud_rates.currentText()))
+        self.port.setParity(self.cb_parity.currentIndex())
+        self.port.setDataBits(int(self.cb_data_bits.currentIndex() + 5))
+        self.port.setFlowControl(self.cb_flow_control.currentIndex())
+        self.port.setStopBits(self.cb_stop_bits.currentIndex())
+
+        if not self.port.open(QIODevice.ReadWrite):
+            self.status_text.setText("Port open error")
+            # self.serial_control_enable(True) # если код работает, удалить всю функцию
+            return False
+
+        self.status_text.setText("Remote control completed")
+        return True
+
+    @contextmanager
+    def open_port(self):
+        if not self.init_port():
+            raise Exception("Can't open port")
+        try:
+            yield
+        finally:
+            self.port.close()
+            self.status_text.setText("Port closed")
+
+    def send_command(self, command):
+        self.port.write(command.encode())
         self.port.waitForReadyRead(self.sb_interval.value())
+
         data = self.port.readAll()
         decode_data = data.data().decode()
         return decode_data.rstrip('\r\n')
@@ -874,61 +905,33 @@ class MagnetCFU(QMainWindow):
         # else:
         #     self.status_text.setText("Can't read IDN")
 
-    def write_port(self, data):
-        self.port.writeData(data.encode())
-
-    def write_port_list(self, data):
+    def send_commands(self, data):
         for value in data:
             self.port.writeData(value.encode())
+            self.port.waitForReadyRead(self.sb_interval.value())
 
-    def init_port(self):
-        if not QSerialPortInfo.availablePorts():
-            self.status_text.setText("no ports")
-        else:
-            self.port.setPortName(self.cb_COM.currentText())
-            self.port.setBaudRate(int(self.cb_baud_rates.currentText()))
-            self.port.setParity(self.cb_parity.currentIndex())
-            self.port.setDataBits(int(self.cb_data_bits.currentIndex() + 5))
-            self.port.setFlowControl(self.cb_flow_control.currentIndex())
-            self.port.setStopBits(self.cb_stop_bits.currentIndex())
-
-        ready = self.port.open(QIODevice.ReadWrite)
-        if not ready:
-            self.status_text.setText("Port open error")
-            self.serial_control_enable(True)
-        else:
-            self.status_text.setText("Remote control completed")
+    # def write_port(self, data):
+    #     self.port.writeData(data.encode())
+    #
+    # def write_port_list(self, data):
+    #     for value in data:
+    #         self.port.writeData(value.encode())
 
     @pyqtSlot()
     def on_btn_idn(self):
-        self.init_port()
-        self.write_port("A007*IDN?\n")
-        self.le_IDN.setText(self.receive_port()[2:])
-        # self.read_idn_from_port()
+        with self.open_port():
+            self.le_IDN.setText(self.send_command("A007*IDN?\n")[2:])
 
-        # self.write_port("*POL?\n")
-        # pol = self.read_polarity()
-        # print(pol)
+            volt, amper = self.read_measurements()
+            self.le_volt.setText(f"{volt: .2f}")
+            self.le_amper.setText(f"{amper: .2f}")
 
-        # if pol == "2":
-        #     self.le_volt.setInputMask("-")
+    def read_measurements(self):
+        volt = float(self.send_command("A007MEAS:VOLT?\n"))
+        amper = float(self.send_command("A007MEAS:CURR?\n"))
+        return volt, amper
 
-        self.port.write("A007MEAS:VOLT?\n".encode())
-        self.read_volt()
-
-        self.port.write("A007MEAS:CURR?\n".encode())
-        self.read_amper()
-
-        # self.real_meas_VI()
-        # print(self.real_volt, self.real_curr)
-
-        #self.timer.timeout.connect(self.read_and_update_data())
-        # self.read_and_update_data() # метод был создан для построения гистерезиса. до конца не реализован
-
-
-        self.port.close()
-
-    def real_meas_VI(self):
+    def real_meas_vi(self):
         self.port.write("A007FETC?\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value())
         real_meas_ascii = self.port.readAll()
@@ -937,44 +940,19 @@ class MagnetCFU(QMainWindow):
         self.real_volt = float(list_real_meas[0])
         self.real_curr = float(list_real_meas[1])
 
-
-    def read_volt(self):
-        # self.receive_port()
-        # self.write_port("*POL?\n")
-        # pol = self.read_polarity()
-
-        self.port.waitForReadyRead(self.sb_interval.value())
-        volt_f = 0.0
-
-        while self.port.canReadLine():
-            volt   = self.port.readLine().data().decode()
-            volt   = volt.rstrip('\r\n')
-            volt_f = float(volt)
-        self.le_volt.setText("{:.2f}".format(volt_f))
-
-    def read_amper(self):
-        self.port.waitForReadyRead(self.sb_interval.value())
-        amper_f = 0.0
-
-        while self.port.canReadLine():
-            amper = self.port.readLine().data().decode()
-            amper = amper.rstrip('\r\n')
-
-            amper_f = float(amper)
-        self.le_amper.setText("{:.2f}".format(amper_f))
-
     @pyqtSlot()
     def on_btn_set_curr(self):
-        self.status_text.setText("Port opened")
-        self.init_port()
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007SYST:REM\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007*CLS\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007OUTP ON\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.set_curr()
+        with self.open_port():
+            data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
+            self.send_commands(data)
+
+        self.set_current()
+
+    def set_current(self, start, stop, step, polarity):
+        self.send_command(f"*POL {polarity}\n")
+        for current in decimal_range(start, stop, step):
+            self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}")
+
 
     def read_polarity(self):
         self.port.waitForReadyRead(self.sb_interval.value())
@@ -1195,10 +1173,10 @@ class MagnetCFU(QMainWindow):
 
         self.daq_module.set("device", self.device)
         self.daq_module.set("type", 0)  # Непрерывная запись
-        self.daq_module.set("endless", 0)
+        self.daq_module.set("endless", 1)
         self.daq_module.set("grid/mode", 2)
-        self.daq_module.set("duration", 1)  # Продолжительность одного блока (секунды)
-        self.daq_module.set("grid/cols", 1)  # Количество точек
+        self.daq_module.set("duration", 0.1)  # Продолжительность одного блока (секунды)
+        self.daq_module.set("grid/cols", 500)  # Количество точек
         self.daq_module.set("count", 0)  # Непрерывный сбор данных
         self.daq_module.execute()
 
