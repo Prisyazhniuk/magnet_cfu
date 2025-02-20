@@ -897,7 +897,6 @@ class MagnetCFU(QMainWindow):
     def send_command(self, command):
         self.port.write(command.encode())
         self.port.waitForReadyRead(self.sb_interval.value())
-
         data = self.port.readAll()
         decode_data = data.data().decode()
         return decode_data.rstrip('\r\n')
@@ -926,33 +925,32 @@ class MagnetCFU(QMainWindow):
         with self.open_port():
             self.le_IDN.setText(self.send_command("A007*IDN?\n")[2:])
 
-            volt, amper = self.read_measurements()
-            self.le_volt.setText(f"{volt: .2f}")
-            self.le_amper.setText(f"{amper: .2f}")
+            # volt, amper = self.read_measurements()
+            # self.le_volt.setText(f"{volt: .2f}")
+            # self.le_amper.setText(f"{amper: .2f}")
 
-    def read_measurements(self):
-        volt = float(self.send_command("A007MEAS:VOLT?\n"))
-        amper = float(self.send_command("A007MEAS:CURR?\n"))
-        return volt, amper
+            volt, amper = self.read_volt_amper()
+            self.le_volt.setText(f"{volt}")
+            self.le_amper.setText(f"{amper}")
 
-    def real_meas_vi(self):
-        self.port.write("A007FETC?\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value())
-        real_meas_ascii = self.port.readAll()
-        real_meas = real_meas_ascii.data().decode().rstrip('\r\n')
-        list_real_meas = real_meas.split(',')
-        self.real_volt = float(list_real_meas[0])
-        self.real_curr = float(list_real_meas[1])
+    # def read_volt_and_amper(self):
+    #     volt = float(self.send_command("A007MEAS:VOLT?\n"))
+    #     amper = float(self.send_command("A007MEAS:CURR?\n"))
+    #     return volt, amper
+
+    def read_volt_amper(self):
+        volt, amper = self.send_command("A007FETC?\n").split(',')
+        return float(volt), float(amper)
 
     @pyqtSlot()
     def on_btn_set_curr(self):
         with self.open_port():
-            # self.port.waitForReadyRead(self.sb_interval.value())
             data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
             self.send_commands(data)
-
-            self.set_current(0, abs(self.dsb_I_start.value()) + self.dsb_step.value(),
-                             self.dsb_step.value(), 2 if self.dsb_I_start.value() < 0 else 1)
+            self.set_current(0,
+                             abs(self.dsb_I_start.value()) + self.dsb_step.value(),
+                             self.dsb_step.value(),
+                             2 if self.dsb_I_start.value() < 0 else 1)
 
     def set_current(self, start, stop, step, polarity):
         self.send_command(f"*POL {polarity}\n")
@@ -962,20 +960,9 @@ class MagnetCFU(QMainWindow):
             self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
         self.btn_set_curr.setChecked(False)
 
-    # def read_polarity(self):
-    #     self.port.waitForReadyRead(self.sb_interval.value())
-    #
-    #     while self.port.canReadLine():
-    #         polarity = self.port.readLine().data().decode()
-    #         polarity = polarity.rstrip('\r\n')
-
-    #         return polarity
-
     @pyqtSlot()
     def on_btn_stop(self):
         pass
-
-    # def reset_current(self):
 
     @pyqtSlot()
     def on_btn_reset(self):
@@ -983,8 +970,10 @@ class MagnetCFU(QMainWindow):
             data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
             self.send_commands(data)
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.reset_current(self, (abs(self.dsb_I_start.value()) - self.dsb_step.value()), -self.dsb_step.value(),
-                               self.dsb_step.value(), 2 if self.dsb_I_start.value() < 0 else 1)
+            self.reset_current(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
+                               -self.dsb_step.value(),
+                               self.dsb_step.value(),
+                               2 if self.dsb_I_start.value() < 0 else 1)
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
             data = ["*POL 1\n", "A007OUTP OFF\n", "A007*RST\n"]
             self.send_commands(data)
@@ -997,7 +986,7 @@ class MagnetCFU(QMainWindow):
         for current in rev_decimal_range(start, stop, step):
             if current > 0.05:
                 self.port.waitForReadyRead(self.sb_interval.value() // 2)
-                self.send_command(f"A007SOUR:VOLT {0.05 * 10:.3f};CURR {0.05:.3f}\n")
+                self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
                 current -= 0.05
             else:
                 self.port.waitForReadyRead(self.sb_interval.value() // 2)
