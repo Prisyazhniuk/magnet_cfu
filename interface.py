@@ -375,6 +375,10 @@ class MagnetCFU(QMainWindow):
         self.cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
         if self.cb_COM.count() == 0:
             self.cb_COM.addItem("no ports")
+        elif self.cb_COM.count() > 0:
+            self.cb_COM.setCurrentText('COM4')
+        else:
+            self.cb_COM.setCurrentIndex(0)
 
         # Window setting
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
@@ -943,58 +947,37 @@ class MagnetCFU(QMainWindow):
     @pyqtSlot()
     def on_btn_set_curr(self):
         with self.open_port():
+            # self.port.waitForReadyRead(self.sb_interval.value())
             data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
             self.send_commands(data)
 
-        self.set_current()
+            self.set_current(0, abs(self.dsb_I_start.value()) + self.dsb_step.value(),
+                             self.dsb_step.value(), 2 if self.dsb_I_start.value() < 0 else 1)
 
     def set_current(self, start, stop, step, polarity):
         self.send_command(f"*POL {polarity}\n")
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
         for current in decimal_range(start, stop, step):
-            self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}")
-
-
-    def read_polarity(self):
-        self.port.waitForReadyRead(self.sb_interval.value())
-
-        while self.port.canReadLine():
-            polarity = self.port.readLine().data().decode()
-            polarity = polarity.rstrip('\r\n')
-
-            # print(type(polarity))
-
-            return polarity
-
-    def set_curr(self):
-        if self.dsb_I_start.value() < 0.0:
-            self.port.write("*POL 2\n".encode())
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            for _i in decimal_range(0, abs(self.dsb_I_start.value()) + self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
-                self.btn_set_curr.setChecked(False)
+            self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
+        self.btn_set_curr.setChecked(False)
 
-        if self.dsb_I_start.value() > 0.0:
-            self.port.write("*POL 1\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value())
-            for _i in decimal_range(0, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
-                self.btn_set_curr.setChecked(False)
+    # def read_polarity(self):
+    #     self.port.waitForReadyRead(self.sb_interval.value())
+    #
+    #     while self.port.canReadLine():
+    #         polarity = self.port.readLine().data().decode()
+    #         polarity = polarity.rstrip('\r\n')
+    #
+    #         # print(type(polarity))
+    #
+    #         return polarity
 
     @pyqtSlot()
     def on_btn_stop(self):
         pass
+
+    # def reset_current(self):
 
     @pyqtSlot()
     def on_btn_reset(self):
@@ -1176,7 +1159,7 @@ class MagnetCFU(QMainWindow):
         self.daq_module.set("endless", 1)
         self.daq_module.set("grid/mode", 2)
         self.daq_module.set("duration", 0.1)  # Продолжительность одного блока (секунды)
-        self.daq_module.set("grid/cols", 500)  # Количество точек
+        self.daq_module.set("grid/cols", 1)  # Количество точек
         self.daq_module.set("count", 0)  # Непрерывный сбор данных
         self.daq_module.execute()
 
