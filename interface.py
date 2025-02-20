@@ -44,8 +44,8 @@ def rev_decimal_range(start, stop, increment):
 
 class MagnetCFU(QMainWindow):
     upd_freq = pyqtSignal(str)  # возможно, надо удалить
-    version_app = '0.1.2'
-    date_build  = '19.02.2025'
+    version_app = '0.1.3'
+    date_build  = '20.02.2025'
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
@@ -968,9 +968,7 @@ class MagnetCFU(QMainWindow):
     #     while self.port.canReadLine():
     #         polarity = self.port.readLine().data().decode()
     #         polarity = polarity.rstrip('\r\n')
-    #
-    #         # print(type(polarity))
-    #
+
     #         return polarity
 
     @pyqtSlot()
@@ -981,47 +979,74 @@ class MagnetCFU(QMainWindow):
 
     @pyqtSlot()
     def on_btn_reset(self):
-        self.init_port()
-        if self.dsb_I_start.value() > 0:
-            for _i in rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
-                                        0 - self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
+        with self.open_port():
+            data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
+            self.send_commands(data)
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            self.reset_current(self, (abs(self.dsb_I_start.value()) - self.dsb_step.value()), -self.dsb_step.value(),
+                               self.dsb_step.value(), 2 if self.dsb_I_start.value() < 0 else 1)
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            data = ["*POL 1\n", "A007OUTP OFF\n", "A007*RST\n"]
+            self.send_commands(data)
+        self.status_text.setText("Port closed")
+        self.btn_reset.setChecked(False)
 
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("*POL 1\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("A007OUTP OFF\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("A007*RST\n".encode())
-            self.port.close()
-            self.status_text.setText("Port closed")
-            self.btn_reset.setChecked(False)
+    def reset_current(self, start, stop, step, polarity):
+        self.send_command(f"*POL {polarity}\n")
+        self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        for current in rev_decimal_range(start, stop, step):
+            if current > 0.05:
+                self.port.waitForReadyRead(self.sb_interval.value() // 2)
+                self.send_command(f"A007SOUR:VOLT {0.05 * 10:.3f};CURR {0.05:.3f}\n")
+                current -= 0.05
+            else:
+                self.port.waitForReadyRead(self.sb_interval.value() // 2)
+                self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
 
-        elif self.dsb_I_start.value() < 0.0:
-            for _i in rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
-                                        0 - self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
+        self.btn_set_curr.setChecked(False)
 
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("*POL 1\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("A007OUTP OFF\n".encode())
-            self.port.write("A007*RST\n".encode())
-            self.port.close()
-            self.status_text.setText("Port closed")
-            self.btn_reset.setChecked(False)
+
+        # self.init_port()
+        # if self.dsb_I_start.value() > 0:
+        #     for _i in rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
+        #                                 0 - self.dsb_step.value(), self.dsb_step.value()):
+        #         self.receive_port()
+        #         a = "A007SOUR:VOLT "
+        #         b = _i * 10
+        #         c = "CURR "
+        #         d = _i
+        #         res = f"{a}{b:.3f};{c}{d:.3f}\n"
+        #         self.port.write(res.encode())
+        #
+        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        #     self.port.write("*POL 1\n".encode())
+        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        #     self.port.write("A007OUTP OFF\n".encode())
+        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        #     self.port.write("A007*RST\n".encode())
+        #     self.port.close()
+        #     self.status_text.setText("Port closed")
+        #     self.btn_reset.setChecked(False)
+        #
+        # elif self.dsb_I_start.value() < 0.0:
+        #     for _i in rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
+        #                                 0 - self.dsb_step.value(), self.dsb_step.value()):
+        #         self.receive_port()
+        #         a = "A007SOUR:VOLT "
+        #         b = _i * 10
+        #         c = "CURR "
+        #         d = _i
+        #         res = f"{a}{b:.3f};{c}{d:.3f}\n"
+        #         self.port.write(res.encode())
+        #
+        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        #     self.port.write("*POL 1\n".encode())
+        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        #     self.port.write("A007OUTP OFF\n".encode())
+        #     self.port.write("A007*RST\n".encode())
+        #     self.port.close()
+        #     self.status_text.setText("Port closed")
+        #     self.btn_reset.setChecked(False)
 
     @pyqtSlot()
     def on_btn_start_meas(self):
