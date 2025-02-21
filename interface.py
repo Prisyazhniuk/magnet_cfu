@@ -30,6 +30,7 @@ from PyQt5.QtWidgets import (
     QFrame
 )
 
+
 def decimal_range(start, stop, increment):
     while start < stop:
         yield start
@@ -43,38 +44,32 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    upd_freq = pyqtSignal(str)  # возможно, надо удалить
-    version_app = '0.1.3'
-    date_build  = '20.02.2025'
+    version_app = '0.1.4'
+    date_build  = '21.02.2025'
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
 
-        self.port             = QSerialPort()
-        self.graph_layout     = pg.GraphicsLayoutWidget()
-        self.lock_in_plot     = self.graph_layout.addPlot(row=1, col=0)
-        self.hysteresis_plot  = self.graph_layout.addPlot(row=2, col=0)
+        self.port            = QSerialPort()
+        self.graph_layout    = pg.GraphicsLayoutWidget()
+        self.lock_in_plot    = self.graph_layout.addPlot(row=1, col=0)
+        self.hysteresis_plot = self.graph_layout.addPlot(row=2, col=0)
+        self.timer_lock_in   = QTimer()
 
+        self.timer_lock_in.timeout.connect(self.update_lock_in_data)
+        self.timer_lock_in.setInterval(10)
 
-
+        # upd_freq = pyqtSignal(str)  # возможно, надо удалить
         # self.graph_widget     = pg.PlotWidget()
         # self.lock_in_gw       = pg.PlotWidget()
         # self.hysteresis_graph = pg.PlotWidget()
-
-
-        self.timer_lock_in      = QTimer()
-        self.timer_lock_in.timeout.connect(self.update_lock_in_data)
-        self.timer_lock_in.setInterval(10)
 
         self.time_window = 10
         self.max_history = 1000
         self.data_buffer = {}
 
-        self._setup_plots()
-
         # self.timer_mang       = QTimer()
         # self.upd_freq_timer   = QTimer()
-
 
         self.real_curr        = None
         self.real_volt        = None
@@ -100,11 +95,12 @@ class MagnetCFU(QMainWindow):
         self.plot: bool       = True
         self.data_dev         = {}
 
-        #for debug
-        self.output_test = ''
-
+        self._setup_plots()
         self.signal_paths.append(self.demod_path + ".x")
         self.signal_paths.append(self.demod_path + ".y")
+
+        # for debug
+        self.output_test = ''
 
         # Check the device has demodulators.
         flags = ziListEnum.recursive | ziListEnum.absolute | ziListEnum.streamingonly
@@ -206,19 +202,6 @@ class MagnetCFU(QMainWindow):
         #     self.data_dev[signal_path] = []
 
         self.clockbase = float(self.daq.getInt(f'/{self.device}/clockbase'))
-        #
-        # if self.plot:
-        #     # self.lock_in_gw.setBackground('#581845')
-        #
-        #     styles = {"color": "#FFC300", "font-size": "15px"}
-        #     self.lock_in_gw.setLabel("left", "Voltage (U)", **styles)
-        #     self.lock_in_gw.setLabel("bottom", "Time (s)", **styles)
-        #
-        #     # Добавление сетки
-        #     self.lock_in_gw.showGrid(x=True, y=True, alpha=0.5)  # Включение сетки с прозрачностью
-
-
-        #     # self.lock_in_gw.setXRange(0, total_duration, padding=0)
         #
         #     ts0 = np.nan
         #     self.read_count = 0
@@ -693,7 +676,7 @@ class MagnetCFU(QMainWindow):
         self.le_phase.textChanged.connect        (self.changed_phase)
         self.le_transfer.textChanged.connect     (self.changed_transfer)
         self.le_tc.textChanged.connect           (self.changed_tc)
-        self.le_amp.editingFinished.connect          (self.changed_amp)
+        self.le_amp.editingFinished.connect      (self.changed_amp)
 
         self.cb_order.currentIndexChanged.connect(self.changed_order)
 
@@ -1280,71 +1263,187 @@ class MagnetCFU(QMainWindow):
 
         self.timer_lock_in.start()
 
-    def read_data_update_plot(self, data_dev, timestamp0):
-
+    def read_data_update_plot(self, data_dev, timestamp0, time_window=10):
         """
         Read and process the acquired data, updating the plot as necessary.
-        """
 
+        :param data_dev: Данные устройства
+        :param timestamp0: Временной ноль для вычитания относительного времени
+        :param time_window: Ширина окна отображения данных (в секундах, по умолчанию 10)
+        """
         # Read new data from the acquisition module
         data_read = self.daq_module.read(flat=True)
         returned_signal_paths = {signal_path.lower() for signal_path in data_read.keys()}
 
+        # Инициализация хранилища графиков и данных при первом запуске
+        if not hasattr(self, "data_lines"):
+            self.data_lines = {}  # Хранилище линий графиков (x и y)
+            self.data_history = {}  # История накопленных данных (сохраняем массивы времени и значений)
+
         for signal_path in self.signal_paths:
-            signal_path_lower = signal_path.lower()
+            signal_path_lower = signal_path.lower()  # Приведение пути к нижнему регистру
 
-            if signal_path_lower in returned_signal_paths:
-                for signal_burst in data_read[signal_path_lower]:
-                    # Initialize the starting timestamp if needed
-                    if timestamp0 is None or (isinstance(timestamp0, (float, int)) and np.isnan(timestamp0)):
-                        timestamp0 = signal_burst["timestamp"][0, 0]
+            # Проверяем, есть ли данные для текущего пути
+            if signal_path_lower not in returned_signal_paths:
+                continue
 
-                    # Extract time and value, converting timestamp to seconds
-                    t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
-                    values = signal_burst["value"][0, :]
+            # Извлекаем данные из возвращенного словаря
+            signal_burst = data_read[signal_path_lower][0]
 
-                    # print(np.shape(values))
-                    # print(f"Data for {signal_path}: t={t}, values={values}")
+            # Инициализация timestamp0 (если None)
+            if timestamp0 is None and "timestamp" in signal_burst:
+                timestamp0 = signal_burst["timestamp"][0, 0]
 
-                    # Append new data to the signal's dataset
-                    data_dev[signal_path].extend(values.tolist())
-                    signal_x = values[0]
-                    sygnal_y = values[1]
-                    # print(signal_x)
+            # Получаем относительное время и значения
+            t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+            values = signal_burst["value"][0, :]
 
-                    # Update or initialize the plot for this signal
-                    if self.plot:
-                        # Initialize the plot line if it doesn't exist
-                        if not hasattr(self, f"data_line_{signal_path}"):
-                            setattr(self, f"data_line_{signal_path}",
-                                    # self.lock_in_gw.plot([], [], pen={'color': 'w', 'width': 1.5}))
-                                    self.lock_in_plot.plot([], [], pen={'color': 'w', 'width': 1.5}))
+            # Проверяем, что массивы t и values валидны
+            if len(values) < 2 or len(t) != len(values):
+                raise ValueError(f"Некорректные данные для {signal_path_lower}: длины t и values не совпадают.")
 
-                        # Retrieve the plot line for the current signal
-                        data_line = getattr(self, f"data_line_{signal_path}")
+            # Определяем имя графика ('x' или 'y') в зависимости от пути
+            if signal_path_lower.endswith(".x"):
+                graph_name = "x"
+                color = "r"  # Красный для x
+            elif signal_path_lower.endswith(".y"):
+                graph_name = "y"
+                color = "b"  # Синий для y
+            else:
+                continue  # Игнорируем другие сигналы, если они вдруг появятся
 
-                        # Update the plot with new data
-                        # data_line.setData(
-                        #     np.append(data_line.xData, -t),
-                        #     np.append(data_line.yData, values)
-                        # )
-                        t_data = np.append(data_line.xData, t)
-                        y_data = np.append(data_line.yData, values)
+            # Создаем графики, если ещё не существуют
+            if graph_name not in self.data_lines:
+                # Создаем новую линию данных
+                self.data_lines[graph_name] = self.lock_in_plot.plot(
+                    [], [],
+                    pen=pg.mkPen(color=color, width=2),
+                    symbol='o',
+                    symbolSize=7,
+                    symbolBrush=pg.mkColor(color),
+                    name=graph_name
+                )
+                # Создаем хранилище для данных
+                self.data_history[graph_name] = {"t": np.array([]), "values": np.array([])}
 
+            # Обновляем историю накопленных данных
+            history = self.data_history[graph_name]
+            history["t"] = np.append(history["t"], t)
+            history["values"] = np.append(history["values"], values)
 
-                        # y1 = np.append(new_y_data[-2], values)
-                        # y2 = new_y_data[-1]
-                        # print(y1, y2)
+            # Обрезаем историю данных, чтобы сохранять только последние time_window секунд
+            max_time = history["t"][-1] if len(history["t"]) > 0 else 0
+            mask = history["t"] >= max_time - time_window
+            history["t"] = history["t"][mask]
+            history["values"] = history["values"][mask]
 
-                        # Update the plot with the filtered data
-                        data_line.setData(t_data, y_data)
-                        # print(new_y_data)
+            # Подготавливаем данные для отображения (плавающее окно от -time_window до 0)
+            t_display = history["t"] - max_time
+            values_display = history["values"]
 
+            # Обновляем данные линии графика
+            self.data_lines[graph_name].setData(t_display, values_display)
 
+        # Создание или обновление легенды
+        if not hasattr(self, "legend"):
+            self.legend = self.lock_in_plot.addLegend()
+        else:
+            self.legend.clear()
+
+        # Добавляем линии данных в легенду
+        for graph_name, line in self.data_lines.items():
+            self.legend.addItem(line, graph_name)
 
         return data_dev, timestamp0
+    #
+    # def read_data_update_plot(self, data_dev, timestamp0):
+    #     """
+    #     Read and process the acquired data, updating the plot as necessary.
+    #     """
+    #     # Read new data from the acquisition module
+    #     data_read = self.daq_module.read(flat=True)
+    #     returned_signal_paths = {signal_path.lower() for signal_path in data_read.keys()}
+    #
+    #     # Инициализация линии данных при первом запуске
+    #     if not hasattr(self, "data_lines"):
+    #         self.data_lines = {}  # Хранилище линий данных для каждого канала
+    #
+    #     for signal_path in self.signal_paths:
+    #         signal_path_lower = signal_path.lower()  # Приведение пути к нижнему регистру
+    #
+    #         # Проверяем, были ли возвращены данные с текущего пути
+    #         if signal_path_lower not in returned_signal_paths:
+    #             continue
+    #
+    #         # Извлечение текущих данных для пути
+    #         signal_burst = data_read[signal_path_lower][0]  # Берем первый блок данных
+    #
+    #         # Инициализация timestamp0, если оно отсутствует
+    #         if timestamp0 is None and "timestamp" in signal_burst:
+    #             timestamp0 = signal_burst["timestamp"][0, 0]
+    #
+    #         # Вычисляем временные метки (в секундах) и значения для графика
+    #         t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+    #         values = signal_burst["value"][0, :]  # Значения измерений
+    #
+    #         # Проверка на валидность данных
+    #         if len(values) < 2 or len(t) != len(values):
+    #             raise ValueError("Данные некорректны: длина времен t и значений values должна совпадать!")
+    #
+    #         # Для каждого пути будет только один график `_y1`
+    #         key = f"{signal_path_lower}_y1"
+    #
+    #         # Если линия для текущего пути еще не существует, создаем ее
+    #         if key not in self.data_lines:
+    #             # Определяем цвет графика в зависимости от пути
+    #             if signal_path_lower.endswith(".x"):
+    #                 color = "r"  # Красный для `sample.x`
+    #             elif signal_path_lower.endswith(".y"):
+    #                 color = "b"  # Синий для `sample.y`
+    #             else:
+    #                 color = "g"  # Зеленый, если случайно попадется другой канал
+    #
+    #             # Создаем график с выбранным цветом
+    #             self.data_lines[key] = self.lock_in_plot.plot(
+    #                 [], [],
+    #                 pen=pg.mkPen(color=color, width=2),
+    #                 symbol='o',
+    #                 symbolSize=7,
+    #                 symbolBrush=pg.mkColor(color),
+    #                 name=f"{signal_path}_y1"
+    #             )
+    #
+    #         # Достаем текущую линию графика для обновления данных
+    #         data_line_y1 = self.data_lines[key]
+    #
+    #         # Обновляем данные для графика
+    #         t_data_y1 = np.append(data_line_y1.xData, t)
+    #         updated_values = np.append(data_line_y1.yData, values)
+    #
+    #         # Синхронизируем длины данных
+    #         if len(t_data_y1) > len(updated_values):
+    #             t_data_y1 = t_data_y1[:len(updated_values)]
+    #         elif len(updated_values) > len(t_data_y1):
+    #             updated_values = updated_values[:len(t_data_y1)]
+    #
+    #         # Устанавливаем обновленные данные в график
+    #         data_line_y1.setData(t_data_y1, updated_values)
+    #
+    #     # Легенда: создаем, если ее нет
+    #     if not hasattr(self, "legend"):
+    #         self.legend = self.lock_in_plot.addLegend()
+    #     else:
+    #         self.legend.clear()  # Очищаем легенду
+    #
+    #     # Добавляем линии данных в легенду
+    #     for key, line in self.data_lines.items():
+    #         self.legend.addItem(line, key)
+    #
+    #     return data_dev, timestamp0
 
     def _setup_plots(self):
+        # self.lock_in_plot.setTitle("title")
+        self.lock_in_plot.addLegend()
         label_style = {'color': '#FFC300', 'font-size': '12px'}
 
         self.lock_in_plot.setLabel('left', 'Voltage', **label_style)
