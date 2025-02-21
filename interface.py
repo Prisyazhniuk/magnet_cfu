@@ -27,7 +27,8 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QComboBox,
     QSplitter,
-    QFrame
+    QFrame,
+    QCheckBox
 )
 
 
@@ -44,7 +45,7 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    version_app = '0.1.5'
+    version_app = '0.1.6'
     date_build  = '21.02.2025'
 
     def __init__(self, parent=None):
@@ -249,6 +250,12 @@ class MagnetCFU(QMainWindow):
         # Creating interface elements | Control tab
         self.cb_COM         = QComboBox()
 
+        self.checkbox_x = QCheckBox("Show X")  # Чекбокс для X графика
+        self.checkbox_x.setChecked(True)  # По умолчанию включено
+        self.checkbox_y = QCheckBox("Show Y")  # Чекбокс для Y графика
+        self.checkbox_y.setChecked(True)  # По умолчанию включено
+
+
         self.lbl_COM        = QLabel("COM")
         self.lbl_I_start    = QLabel("I start, A")
         self.lbl_I_stop     = QLabel("I stop, A")
@@ -389,6 +396,8 @@ class MagnetCFU(QMainWindow):
         lock_in.addWidget(self.graph_layout)
         # lock_in.addWidget(self.lock_in_gw)
         lock_in.addWidget(self.btn_clear_lock_in)
+        lock_in.addWidget(self.checkbox_x)
+        lock_in.addWidget(self.checkbox_y)
 
         # self.box_04.setFixedSize(500, 300)
         # self.box_04.setLayout(hyst_layout)
@@ -472,6 +481,9 @@ class MagnetCFU(QMainWindow):
         self.btn_open.clicked.connect      (self.on_btn_open)
 
         self.btn_clear_lock_in.clicked.connect(self.clear_lock_in)
+
+        self.checkbox_x.stateChanged.connect(self.toggle_x_graph)
+        self.checkbox_y.stateChanged.connect(self.toggle_y_graph)
 
         self.box_01.setLayout(top_layout)
         self.box_02.setLayout(middle_layout)
@@ -1459,6 +1471,17 @@ class MagnetCFU(QMainWindow):
         if hasattr(self, "data_lines"):
             for graph_name, line in self.data_lines.items():
                 line.setData([], [])  # Удаляем все данные
+
+    def toggle_x_graph(self, state):
+        data_items = self.lock_in_plot.listDataItems()
+        if data_items:
+            data_items[0].setVisible(state == Qt.Checked)
+
+    def toggle_y_graph(self, state):
+        # Аналогично для второго графика
+        data_items = self.lock_in_plot.listDataItems()
+        if len(data_items) > 1:
+            data_items[1].setVisible(state == Qt.Checked)
 
     def _setup_plots(self):
         # self.lock_in_plot.setTitle("title")
