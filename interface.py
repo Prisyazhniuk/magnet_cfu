@@ -44,7 +44,7 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    version_app = '0.1.4'
+    version_app = '0.1.5'
     date_build  = '21.02.2025'
 
     def __init__(self, parent=None):
@@ -279,6 +279,8 @@ class MagnetCFU(QMainWindow):
         self.btn_open       = QPushButton("&Open...")
         self.btn_save       = QPushButton("&Save")
 
+        self.btn_clear_lock_in = QPushButton("Clear data")
+
         self.box_01         = QGroupBox("Info")
         self.box_02         = QGroupBox("Value")
         self.box_03         = QGroupBox("Control")
@@ -386,6 +388,7 @@ class MagnetCFU(QMainWindow):
         # hyst_layout.addWidget(self.hysteresis_graph)
         lock_in.addWidget(self.graph_layout)
         # lock_in.addWidget(self.lock_in_gw)
+        lock_in.addWidget(self.btn_clear_lock_in)
 
         # self.box_04.setFixedSize(500, 300)
         # self.box_04.setLayout(hyst_layout)
@@ -467,6 +470,8 @@ class MagnetCFU(QMainWindow):
         self.btn_reset.clicked.connect     (self.on_btn_reset)
         self.btn_start_meas.clicked.connect(self.on_btn_start_meas)
         self.btn_open.clicked.connect      (self.on_btn_open)
+
+        self.btn_clear_lock_in.clicked.connect(self.clear_lock_in)
 
         self.box_01.setLayout(top_layout)
         self.box_02.setLayout(middle_layout)
@@ -1440,6 +1445,20 @@ class MagnetCFU(QMainWindow):
     #         self.legend.addItem(line, key)
     #
     #     return data_dev, timestamp0
+
+    def clear_lock_in(self):
+        """
+        Очищает все накопленные данные и сбрасывает графики
+        """
+        # Сброс истории данных
+        if hasattr(self, "data_history"):
+            self.data_history = {graph_name: {"t": np.array([]), "values": np.array([])}
+                                 for graph_name in self.data_lines.keys()}
+
+        # Сброс линий графика
+        if hasattr(self, "data_lines"):
+            for graph_name, line in self.data_lines.items():
+                line.setData([], [])  # Удаляем все данные
 
     def _setup_plots(self):
         # self.lock_in_plot.setTitle("title")
