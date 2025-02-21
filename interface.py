@@ -70,6 +70,7 @@ class MagnetCFU(QMainWindow):
         self.time_window = 10
         self.max_history = 1000
         self.data_buffer = {}
+        self.timestamp0 = None
 
         # self.timer_mang       = QTimer()
         # self.upd_freq_timer   = QTimer()
@@ -1167,8 +1168,6 @@ class MagnetCFU(QMainWindow):
 
         return data_v, data_i
 
-
-
     def start_continuous_plotting(self):
 
         if not self.daq_module or not self.device:
@@ -1178,17 +1177,10 @@ class MagnetCFU(QMainWindow):
         self.daq_module.set("type", 0)  # Непрерывная запись
         self.daq_module.set("endless", 1)
         self.daq_module.set("grid/mode", 2)
-        self.daq_module.set("duration", 0.1)  # Продолжительность одного блока (секунды)
+        self.daq_module.set("duration", 0.02)  # Продолжительность одного блока (секунды)
         self.daq_module.set("grid/cols", 1)  # Количество точек
         self.daq_module.set("count", 0)  # Непрерывный сбор данных
         self.daq_module.execute()
-
-        # for signal_path in self.signal_paths:
-        #     print("Subscribing to ", signal_path)
-        #     self.daq_module.subscribe(signal_path)
-        #     self.data_dev[signal_path] = []
-        #
-        # self.timer_lock_in.start()
 
         # Subscribe to signal paths and initialize data storage
         for signal_path in self.signal_paths:
@@ -1196,12 +1188,7 @@ class MagnetCFU(QMainWindow):
             print(f"Subscribing to {signal_path}")
             self.daq_module.subscribe(signal_path_lower)
             self.data_dev[signal_path] = []
-            # self.data_buffer[signal_path] = {'time': np.array([]), 'values': np.array([])}
 
-        # Ensure timestamp0 is initialized for new acquisition
-        self.timestamp0 = None
-
-        # Start the timer for periodic updates
         if hasattr(self, "timer_lock_in"):
             self.timer_lock_in.start()
         else:
@@ -1213,54 +1200,7 @@ class MagnetCFU(QMainWindow):
         and updating the plot.
         """
 
-        #
-        # try:
-        #     data_read = self.daq_module.read(flat=True)
-        #
-        #     for signal_path in self.signal_paths:
-        #         signal_data = self.process_signal(data_read, signal_path)
-        #
-        #         if signal_path not in self.data_buffer:
-        #             self.data_buffer[signal_path] = {
-        #                 'time': np.array([]),
-        #                 'values': np.array([])
-        #             }
-        #         self.data_buffer[signal_path]['time'] = np.concatenate((
-        #             self.data_buffer[signal_path]['time'],
-        #             signal_data['time']
-        #         ))
-        #
-        #         self.data_buffer[signal_path]['values'] = np.concatenate((
-        #             self.data_buffer[signal_path]['values'],
-        #             signal_data['values']
-        #         ))
-        #
-        #         cutoff = self.data_buffer[signal_path]['time'][-1] - self.max_history
-        #         mask = self.data_buffer[signal_path]['time'] >= cutoff
-        #         self.data_buffer[signal_path]['time'] = self.data_buffer[signal_path]['time'][mask]
-        #         self.data_buffer[signal_path]['values'] = self.data_buffer[signal_path]['values'][mask]
-        #
-        #         if self.plot:
-        #             if not hasattr(self, f"data_line_{signal_path}"):
-        #                 setattr(self, f"data_line_{signal_path}",
-        #                     self.lock_in_plot.plot(pen=pg.mkPen(color='w', width=1.5)))
-        #
-        #             line = getattr(self, f"data_line_{signal_path}")
-        #             line.setData(
-        #                 self.data_buffer[signal_path]['time'],
-        #                 self.data_buffer[signal_path]['values']
-        #             )
-        #     if self.auto_scroll:
-        #         current_time = self.data_buffer[self.signal_paths[0]]['time'][-1]
-        #         self.lock_in_plot.setXRange(current_time - self.time_window, current_time)
-        #
-        # except Exception as e:
-        #     print(f"Error updating plot: {e}")
-
-
-
         try:
-            # Ensure timestamp0 is initialized
             if not hasattr(self, "timestamp0"):
                 self.timestamp0 = None
 
@@ -1273,8 +1213,7 @@ class MagnetCFU(QMainWindow):
                 self.daq_module.execute()  # Restart the module for continuous acquisition
 
         except Exception as e:
-            # Stop the timer and report the error
-            print(f"Ошибка при обновлении графика: {e}")
+            print(f"Error updating plot: {e}")
             if hasattr(self, "timer_lock_in"):
                 self.timer_lock_in.stop()
             raise e
@@ -1290,42 +1229,38 @@ class MagnetCFU(QMainWindow):
         """
         Read and process the acquired data, updating the plot as necessary.
 
-        :param data_dev: Данные устройства
-        :param timestamp0: Временной ноль для вычитания относительного времени
-        :param time_window: Ширина окна отображения данных (в секундах, по умолчанию 10)
         """
-        # Read new data from the acquisition module
         data_read = self.daq_module.read(flat=True)
         returned_signal_paths = {signal_path.lower() for signal_path in data_read.keys()}
 
-        # Инициализация хранилища графиков и данных при первом запуске
+        # Initializing the graph and data storage at the first launch
         if not hasattr(self, "data_lines"):
-            self.data_lines = {}  # Хранилище линий графиков (x и y)
-            self.data_history = {}  # История накопленных данных (сохраняем массивы времени и значений)
+            self.data_lines = {}  # Graph line storage (x- and y-channels)
+            self.data_history = {}  # History of accumulated data (save arrays of time and values)
 
         for signal_path in self.signal_paths:
-            signal_path_lower = signal_path.lower()  # Приведение пути к нижнему регистру
+            signal_path_lower = signal_path.lower()
 
-            # Проверяем, есть ли данные для текущего пути
+            # Checking if there is data for the current path
             if signal_path_lower not in returned_signal_paths:
                 continue
 
-            # Извлекаем данные из возвращенного словаря
+            # Extracting data from the returned dictionary
             signal_burst = data_read[signal_path_lower][0]
 
-            # Инициализация timestamp0 (если None)
+            # Initializing timestamp0
             if timestamp0 is None and "timestamp" in signal_burst:
                 timestamp0 = signal_burst["timestamp"][0, 0]
 
-            # Получаем относительное время и значения
+            # Get the relative time and values
             t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
             values = signal_burst["value"][0, :]
 
-            # Проверяем, что массивы t и values валидны
+            # Check that the arrays t and values are valid
             if len(values) < 2 or len(t) != len(values):
-                raise ValueError(f"Некорректные данные для {signal_path_lower}: длины t и values не совпадают.")
+                raise ValueError(f"Incorrect data for {signal_path_lower}: len t and values don't match.")
 
-            # Определяем имя графика ('x' или 'y') в зависимости от пути
+            # Defining the graph name ('x' or 'y') depending on the path
             if signal_path_lower.endswith(".x"):
                 graph_name = "x"
                 color = "r"
@@ -1333,12 +1268,10 @@ class MagnetCFU(QMainWindow):
                 graph_name = "y"
                 color = "b"
             else:
-                continue  # Игнорируем другие сигналы, если они вдруг появятся
+                continue
 
             if not self.is_endless_mode_enabled:
-                # Создаем графики, если ещё не существуют
                 if graph_name not in self.data_lines:
-                    # Создаем новую линию данных
                     self.data_lines[graph_name] = self.lock_in_plot.plot(
                         [], [],
                         pen=pg.mkPen(color=color, width=2),
@@ -1347,31 +1280,28 @@ class MagnetCFU(QMainWindow):
                         symbolBrush=pg.mkColor(color),
                         name=graph_name
                     )
-                    # Создаем хранилище для данных
                     self.data_history[graph_name] = {"t": np.array([]), "values": np.array([])}
 
-                # Обновляем историю накопленных данных
+                # Updating the history of accumulated data
                 history = self.data_history[graph_name]
                 history["t"] = np.append(history["t"], t)
                 history["values"] = np.append(history["values"], values)
 
-                # Обрезаем историю данных, чтобы сохранять только последние time_window секунд
+                # Truncating the data history to save only the last time_window seconds
                 max_time = history["t"][-1] if len(history["t"]) > 0 else 0
                 mask = history["t"] >= max_time - time_window
                 history["t"] = history["t"][mask]
                 history["values"] = history["values"][mask]
 
-                # Подготавливаем данные для отображения (плавающее окно от -time_window до 0)
+                # Preparing the data for display (window: -time_window до 0)
                 t_display = history["t"] - max_time
                 values_display = history["values"]
 
-                # Обновляем данные линии графика
                 self.data_lines[graph_name].setData(t_display, values_display)
 
             else:
 
                 if graph_name not in self.data_lines:
-                    # Создаем новую линию данных
                     self.data_lines[graph_name] = self.lock_in_plot.plot(
                         [], [],
                         pen=pg.mkPen(color=color, width=2),
@@ -1385,7 +1315,6 @@ class MagnetCFU(QMainWindow):
                 t_data = np.append(data_line_y.xData, t)
                 y_data = np.append(data_line_y.yData, values)
                 data_line_y.setData(t_data, y_data)
-
 
         if not hasattr(self, "legend"):
             self.legend = self.lock_in_plot.addLegend()
@@ -1405,7 +1334,7 @@ class MagnetCFU(QMainWindow):
 
         if hasattr(self, "data_lines"):
             for graph_name, line in self.data_lines.items():
-                line.setData([], [])  # Удаляем все данные
+                line.setData([], [])
 
     def toggle_x_graph(self, state):
         data_items = self.lock_in_plot.listDataItems()
@@ -1413,19 +1342,16 @@ class MagnetCFU(QMainWindow):
             data_items[0].setVisible(state == Qt.Checked)
 
     def toggle_y_graph(self, state):
-        # Аналогично для второго графика
         data_items = self.lock_in_plot.listDataItems()
         if len(data_items) > 1:
             data_items[1].setVisible(state == Qt.Checked)
 
     def toggle_endless(self, state):
-        if state == Qt.Checked:  # Если чекбокс включен
+        if state == Qt.Checked:
             self.is_endless_mode_enabled = True
-            # Уберем фиксированный диапазон оси X
             self.lock_in_plot.enableAutoRange(axis='x', enable=True)
-        else:  # Если чекбокс выключен
+        else:
             self.is_endless_mode_enabled = False
-            # Ограничиваем диапазон отображения данными от 0 до -10 секунд
             self.lock_in_plot.setXRange(-10, 0, padding=0)
 
     def _setup_plots(self):
@@ -1452,14 +1378,9 @@ class MagnetCFU(QMainWindow):
         self.lock_in_plot.addItem(self.h_line)
 
         self.lock_in_plot.scene().sigMouseMoved.connect(self.mouse_moved)
-        self.lock_in_plot.sigRangeChanged.connect(self.handle_zoom)
-        #
-        # self.lock_in_plot.setXRange(-self.time_window, 0)
-        # self.lock_in_plot.setLimits(xMin=-self.max_history, xMax=0)
-        #
+        # self.lock_in_plot.sigRangeChanged.connect(self.handle_zoom)
         # self.auto_scroll = True
-
-        self.lock_in_plot.setDownsampling(auto=True, mode='peak')
+        # self.lock_in_plot.setDownsampling(auto=True, mode='peak')
 
     def mouse_moved(self, evt):
         pos = evt
@@ -1478,111 +1399,7 @@ class MagnetCFU(QMainWindow):
             self.h_line.setPos(y1)
             self.h_line.setPos(y2)
 
-    def handle_zoom(self, window, view_range):
-        x_start, x_end = view_range[0]
-        self.auto_scroll = (x_end >= -0.1)
-
-    def process_signal(self, data, signal_path):
-        current_time = time.time()
-        return {
-            'time': np.array([current_time]),
-            'values': np.array([data[signal_path]])
-        }
-
-# старый рабочий вариант
-        # data_read = self.daq_module.read(flat=True)  # Считывание новых данных
-        # returned_signal_paths = [
-        #     signal_path.lower() for signal_path in data_read.keys()
-        # ]
-        #
-        # for signal_path in self.signal_paths:
-        #     if signal_path.lower() in returned_signal_paths:
-        #         for index, signal_burst in enumerate(data_read[signal_path.lower()]):
-        #             if timestamp0 is None or (isinstance(timestamp0, (float, int)) and np.isnan(timestamp0)):
-        #                 timestamp0 = signal_burst["timestamp"][0, 0]  # Время старта
-        #
-        #             # Преобразование временной метки в секунды
-        #             t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
-        #             value = signal_burst["value"][0, :]
-        #
-        #             # Сохранение данных
-        #             data_dev[signal_path].extend(signal_burst["value"][0, :].tolist())  # Добавление точек на график
-        #
-        #             # Обновление графика
-        #             if self.plot:
-        #                 self.lock_in_gw.plot([], [], pen={'color': 'w', 'width': 1.5})
-        #
-        #
-        #                 # Если график ещё не создан — инициализация
-        #                 if not hasattr(self, f"data_line_{signal_path}"):
-        #                     setattr(self, f"data_line_{signal_path}",
-        #                             self.lock_in_gw.plot([], [] )) # pen={'color':'w', 'width':1.5}))
-        #
-        #
-        #                 data_line = getattr(self, f"data_line_{signal_path}")
-        #                 # data_line_x = getattr(self, f"data_line_{signal_path}")
-        #                 # data_line_y = getattr(self, f"data_line_{signal_path}")
-        #
-        #                 # Добавляем новые точки (объединяем старые и новые)
-        #
-        #                 data_line.setData(
-        #                     np.append(data_line.xData, t),
-        #                     np.append(data_line.yData, value)
-        #                 )
-        #
-        # # Обновляем заголовок графика с прогрессом
-        # if self.plot:
-        #     progress = self.daq_module.progress()[0]
-        #     self.lock_in_gw.setTitle(f"Progress: {100 * progress:.2f}%")
-        #
-        # return data_dev, timestamp0
-
-    # def read_data_update_plot(self, data_dev, timestamp0):
-    #     """
-    #     Read the acquired data out from the module and plot it. Raise an
-    #     AssertionError if no data is returned.
-    #     """
-    #     data_read = self.daq_module.read(True)
-    #     returned_signal_paths = [
-    #         signal_path.lower() for signal_path in data_read.keys()
-    #     ]
-    #     progress = self.daq_module.progress()[0]
-    #     # Loop over all the subscribed signals:
-    #     for signal_path in self.signal_paths:
-    #         if signal_path.lower() in returned_signal_paths:
-    #             # Loop over all the bursts for the subscribed signal. More than
-    #             # one burst may be returned at a time, in particular if we call
-    #             # read() less frequently than the burst_duration.
-    #             for index, signal_burst in enumerate(data_read[signal_path.lower()]):
-    #                 if np.any(np.isnan(timestamp0)):
-    #                     # Set our first timestamp to the first timestamp we obtain.
-    #                     timestamp0 = signal_burst["timestamp"][0, 0]
-    #                 # Convert from device ticks to time in seconds.
-    #                 t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
-    #                 value = signal_burst["value"][0, :]
-    #                 if self.plot:
-    #                     self.data_line = self.lock_in_gw.plot(t, value)
-    #                 num_samples = len(signal_burst["value"][0, :])
-    #                 dt = (
-    #                              signal_burst["timestamp"][0, -1]
-    #                              - signal_burst["timestamp"][0, 0]
-    #                      ) / self.clockbase
-    #                 data_dev[signal_path].append(signal_burst)
-    #
-    #                 # print(
-    #                 #     f"Read: {self.read_count}, progress: {100 * progress:.2f}%.",
-    #                 #     f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
-    #                 # )
-    #         else:
-    #             # Note: If we read before the next burst has finished, there may be no new data.
-    #             # No action required.
-    #             pass
-    #     #
-    #     # Update the plot.
-    #     if self.plot:
-    #         # self.timer.setInterval(50)
-    #         # self.timer.start()
-    #         self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
-    #         # plot.pause(0.01)
-    #     return data_dev, timestamp0
+    # def handle_zoom(self, window, view_range):
+    #     x_start, x_end = view_range[0]
+    #     self.auto_scroll = (x_end >= -0.1)
 
