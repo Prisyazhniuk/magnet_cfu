@@ -45,7 +45,7 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    version_app = '0.1.6'
+    version_app = '0.1.7'
     date_build  = '21.02.2025'
 
     def __init__(self, parent=None):
@@ -64,6 +64,8 @@ class MagnetCFU(QMainWindow):
         # self.graph_widget     = pg.PlotWidget()
         # self.lock_in_gw       = pg.PlotWidget()
         # self.hysteresis_graph = pg.PlotWidget()
+
+        self.is_endless_mode_enabled = False
 
         self.time_window = 10
         self.max_history = 1000
@@ -250,10 +252,12 @@ class MagnetCFU(QMainWindow):
         # Creating interface elements | Control tab
         self.cb_COM         = QComboBox()
 
-        self.checkbox_x = QCheckBox("Show X")  # Чекбокс для X графика
-        self.checkbox_x.setChecked(True)  # По умолчанию включено
-        self.checkbox_y = QCheckBox("Show Y")  # Чекбокс для Y графика
-        self.checkbox_y.setChecked(True)  # По умолчанию включено
+        self.checkbox_x = QCheckBox("Show X")
+        self.checkbox_x.setChecked(True)
+        self.checkbox_y = QCheckBox("Show Y")
+        self.checkbox_y.setChecked(True)
+        self.chb_endless_plot = QCheckBox("Endless plot")
+        self.chb_endless_plot.setChecked(False)
 
 
         self.lbl_COM        = QLabel("COM")
@@ -398,6 +402,7 @@ class MagnetCFU(QMainWindow):
         lock_in.addWidget(self.btn_clear_lock_in)
         lock_in.addWidget(self.checkbox_x)
         lock_in.addWidget(self.checkbox_y)
+        lock_in.addWidget(self.chb_endless_plot)
 
         # self.box_04.setFixedSize(500, 300)
         # self.box_04.setLayout(hyst_layout)
@@ -484,6 +489,7 @@ class MagnetCFU(QMainWindow):
 
         self.checkbox_x.stateChanged.connect(self.toggle_x_graph)
         self.checkbox_y.stateChanged.connect(self.toggle_y_graph)
+        self.chb_endless_plot.stateChanged.connect(self.toggle_endless)
 
         self.box_01.setLayout(top_layout)
         self.box_02.setLayout(middle_layout)
@@ -1322,152 +1328,81 @@ class MagnetCFU(QMainWindow):
             # Определяем имя графика ('x' или 'y') в зависимости от пути
             if signal_path_lower.endswith(".x"):
                 graph_name = "x"
-                color = "r"  # Красный для x
+                color = "r"
             elif signal_path_lower.endswith(".y"):
                 graph_name = "y"
-                color = "b"  # Синий для y
+                color = "b"
             else:
                 continue  # Игнорируем другие сигналы, если они вдруг появятся
 
-            # Создаем графики, если ещё не существуют
-            if graph_name not in self.data_lines:
-                # Создаем новую линию данных
-                self.data_lines[graph_name] = self.lock_in_plot.plot(
-                    [], [],
-                    pen=pg.mkPen(color=color, width=2),
-                    symbol='o',
-                    symbolSize=7,
-                    symbolBrush=pg.mkColor(color),
-                    name=graph_name
-                )
-                # Создаем хранилище для данных
-                self.data_history[graph_name] = {"t": np.array([]), "values": np.array([])}
+            if not self.is_endless_mode_enabled:
+                # Создаем графики, если ещё не существуют
+                if graph_name not in self.data_lines:
+                    # Создаем новую линию данных
+                    self.data_lines[graph_name] = self.lock_in_plot.plot(
+                        [], [],
+                        pen=pg.mkPen(color=color, width=2),
+                        symbol='o',
+                        symbolSize=7,
+                        symbolBrush=pg.mkColor(color),
+                        name=graph_name
+                    )
+                    # Создаем хранилище для данных
+                    self.data_history[graph_name] = {"t": np.array([]), "values": np.array([])}
 
-            # Обновляем историю накопленных данных
-            history = self.data_history[graph_name]
-            history["t"] = np.append(history["t"], t)
-            history["values"] = np.append(history["values"], values)
+                # Обновляем историю накопленных данных
+                history = self.data_history[graph_name]
+                history["t"] = np.append(history["t"], t)
+                history["values"] = np.append(history["values"], values)
 
-            # Обрезаем историю данных, чтобы сохранять только последние time_window секунд
-            max_time = history["t"][-1] if len(history["t"]) > 0 else 0
-            mask = history["t"] >= max_time - time_window
-            history["t"] = history["t"][mask]
-            history["values"] = history["values"][mask]
+                # Обрезаем историю данных, чтобы сохранять только последние time_window секунд
+                max_time = history["t"][-1] if len(history["t"]) > 0 else 0
+                mask = history["t"] >= max_time - time_window
+                history["t"] = history["t"][mask]
+                history["values"] = history["values"][mask]
 
-            # Подготавливаем данные для отображения (плавающее окно от -time_window до 0)
-            t_display = history["t"] - max_time
-            values_display = history["values"]
+                # Подготавливаем данные для отображения (плавающее окно от -time_window до 0)
+                t_display = history["t"] - max_time
+                values_display = history["values"]
 
-            # Обновляем данные линии графика
-            self.data_lines[graph_name].setData(t_display, values_display)
+                # Обновляем данные линии графика
+                self.data_lines[graph_name].setData(t_display, values_display)
 
-        # Создание или обновление легенды
+            else:
+
+                if graph_name not in self.data_lines:
+                    # Создаем новую линию данных
+                    self.data_lines[graph_name] = self.lock_in_plot.plot(
+                        [], [],
+                        pen=pg.mkPen(color=color, width=2),
+                        symbol='o',
+                        symbolSize=7,
+                        symbolBrush=pg.mkColor(color),
+                        name=graph_name
+                    )
+
+                data_line_y = self.data_lines[graph_name]
+                t_data = np.append(data_line_y.xData, t)
+                y_data = np.append(data_line_y.yData, values)
+                data_line_y.setData(t_data, y_data)
+
+
         if not hasattr(self, "legend"):
             self.legend = self.lock_in_plot.addLegend()
         else:
             self.legend.clear()
 
-        # Добавляем линии данных в легенду
         for graph_name, line in self.data_lines.items():
             self.legend.addItem(line, graph_name)
 
         return data_dev, timestamp0
-    #
-    # def read_data_update_plot(self, data_dev, timestamp0):
-    #     """
-    #     Read and process the acquired data, updating the plot as necessary.
-    #     """
-    #     # Read new data from the acquisition module
-    #     data_read = self.daq_module.read(flat=True)
-    #     returned_signal_paths = {signal_path.lower() for signal_path in data_read.keys()}
-    #
-    #     # Инициализация линии данных при первом запуске
-    #     if not hasattr(self, "data_lines"):
-    #         self.data_lines = {}  # Хранилище линий данных для каждого канала
-    #
-    #     for signal_path in self.signal_paths:
-    #         signal_path_lower = signal_path.lower()  # Приведение пути к нижнему регистру
-    #
-    #         # Проверяем, были ли возвращены данные с текущего пути
-    #         if signal_path_lower not in returned_signal_paths:
-    #             continue
-    #
-    #         # Извлечение текущих данных для пути
-    #         signal_burst = data_read[signal_path_lower][0]  # Берем первый блок данных
-    #
-    #         # Инициализация timestamp0, если оно отсутствует
-    #         if timestamp0 is None and "timestamp" in signal_burst:
-    #             timestamp0 = signal_burst["timestamp"][0, 0]
-    #
-    #         # Вычисляем временные метки (в секундах) и значения для графика
-    #         t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
-    #         values = signal_burst["value"][0, :]  # Значения измерений
-    #
-    #         # Проверка на валидность данных
-    #         if len(values) < 2 or len(t) != len(values):
-    #             raise ValueError("Данные некорректны: длина времен t и значений values должна совпадать!")
-    #
-    #         # Для каждого пути будет только один график `_y1`
-    #         key = f"{signal_path_lower}_y1"
-    #
-    #         # Если линия для текущего пути еще не существует, создаем ее
-    #         if key not in self.data_lines:
-    #             # Определяем цвет графика в зависимости от пути
-    #             if signal_path_lower.endswith(".x"):
-    #                 color = "r"  # Красный для `sample.x`
-    #             elif signal_path_lower.endswith(".y"):
-    #                 color = "b"  # Синий для `sample.y`
-    #             else:
-    #                 color = "g"  # Зеленый, если случайно попадется другой канал
-    #
-    #             # Создаем график с выбранным цветом
-    #             self.data_lines[key] = self.lock_in_plot.plot(
-    #                 [], [],
-    #                 pen=pg.mkPen(color=color, width=2),
-    #                 symbol='o',
-    #                 symbolSize=7,
-    #                 symbolBrush=pg.mkColor(color),
-    #                 name=f"{signal_path}_y1"
-    #             )
-    #
-    #         # Достаем текущую линию графика для обновления данных
-    #         data_line_y1 = self.data_lines[key]
-    #
-    #         # Обновляем данные для графика
-    #         t_data_y1 = np.append(data_line_y1.xData, t)
-    #         updated_values = np.append(data_line_y1.yData, values)
-    #
-    #         # Синхронизируем длины данных
-    #         if len(t_data_y1) > len(updated_values):
-    #             t_data_y1 = t_data_y1[:len(updated_values)]
-    #         elif len(updated_values) > len(t_data_y1):
-    #             updated_values = updated_values[:len(t_data_y1)]
-    #
-    #         # Устанавливаем обновленные данные в график
-    #         data_line_y1.setData(t_data_y1, updated_values)
-    #
-    #     # Легенда: создаем, если ее нет
-    #     if not hasattr(self, "legend"):
-    #         self.legend = self.lock_in_plot.addLegend()
-    #     else:
-    #         self.legend.clear()  # Очищаем легенду
-    #
-    #     # Добавляем линии данных в легенду
-    #     for key, line in self.data_lines.items():
-    #         self.legend.addItem(line, key)
-    #
-    #     return data_dev, timestamp0
 
     def clear_lock_in(self):
-        """
-        Очищает все накопленные данные и сбрасывает графики
-        """
-        # Сброс истории данных
+
         if hasattr(self, "data_history"):
             self.data_history = {graph_name: {"t": np.array([]), "values": np.array([])}
                                  for graph_name in self.data_lines.keys()}
 
-        # Сброс линий графика
         if hasattr(self, "data_lines"):
             for graph_name, line in self.data_lines.items():
                 line.setData([], [])  # Удаляем все данные
@@ -1482,6 +1417,16 @@ class MagnetCFU(QMainWindow):
         data_items = self.lock_in_plot.listDataItems()
         if len(data_items) > 1:
             data_items[1].setVisible(state == Qt.Checked)
+
+    def toggle_endless(self, state):
+        if state == Qt.Checked:  # Если чекбокс включен
+            self.is_endless_mode_enabled = True
+            # Уберем фиксированный диапазон оси X
+            self.lock_in_plot.enableAutoRange(axis='x', enable=True)
+        else:  # Если чекбокс выключен
+            self.is_endless_mode_enabled = False
+            # Ограничиваем диапазон отображения данными от 0 до -10 секунд
+            self.lock_in_plot.setXRange(-10, 0, padding=0)
 
     def _setup_plots(self):
         # self.lock_in_plot.setTitle("title")
