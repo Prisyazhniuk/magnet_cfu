@@ -992,57 +992,15 @@ class MagnetCFU(QMainWindow):
         self.port.waitForReadyRead(self.sb_interval.value() // 2)
         for current in rev_decimal_range(start, stop, step):
             if current > 0.05:
-                self.port.waitForReadyRead(self.sb_interval.value() // 2)
-                self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
                 current -= 0.05
-            else:
                 self.port.waitForReadyRead(self.sb_interval.value() // 2)
                 self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
+
+        else:
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
 
         self.btn_set_curr.setChecked(False)
-
-
-        # self.init_port()
-        # if self.dsb_I_start.value() > 0:
-        #     for _i in rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
-        #                                 0 - self.dsb_step.value(), self.dsb_step.value()):
-        #         self.receive_port()
-        #         a = "A007SOUR:VOLT "
-        #         b = _i * 10
-        #         c = "CURR "
-        #         d = _i
-        #         res = f"{a}{b:.3f};{c}{d:.3f}\n"
-        #         self.port.write(res.encode())
-        #
-        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        #     self.port.write("*POL 1\n".encode())
-        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        #     self.port.write("A007OUTP OFF\n".encode())
-        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        #     self.port.write("A007*RST\n".encode())
-        #     self.port.close()
-        #     self.status_text.setText("Port closed")
-        #     self.btn_reset.setChecked(False)
-        #
-        # elif self.dsb_I_start.value() < 0.0:
-        #     for _i in rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
-        #                                 0 - self.dsb_step.value(), self.dsb_step.value()):
-        #         self.receive_port()
-        #         a = "A007SOUR:VOLT "
-        #         b = _i * 10
-        #         c = "CURR "
-        #         d = _i
-        #         res = f"{a}{b:.3f};{c}{d:.3f}\n"
-        #         self.port.write(res.encode())
-        #
-        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        #     self.port.write("*POL 1\n".encode())
-        #     self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        #     self.port.write("A007OUTP OFF\n".encode())
-        #     self.port.write("A007*RST\n".encode())
-        #     self.port.close()
-        #     self.status_text.setText("Port closed")
-        #     self.btn_reset.setChecked(False)
 
     @pyqtSlot()
     def on_btn_start_meas(self):
@@ -1137,19 +1095,6 @@ class MagnetCFU(QMainWindow):
     def on_btn_open(self):
         pass
 
-    @pyqtSlot()
-    def on_mouse_clicked(self, event):
-        pos = event.scenePos()
-        x = pos.x()
-        y = pos.y()
-        self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
-
-    # def read_and_update_data(self):
-    #
-    #     self.real_curr, self.real_volt = self.get_device_data()
-    #
-    #     self.hysteresis_graph.plot(self.real_curr, self.real_volt, pen='b', clear=True)
-
     def get_device_data(self):
 
         self.timer.start(1000)  # 1000 ms
@@ -1171,15 +1116,15 @@ class MagnetCFU(QMainWindow):
     def start_continuous_plotting(self):
 
         if not self.daq_module or not self.device:
-            raise ValueError("DAQ module или устройство не инициализированы.")
+            raise ValueError("DAQ module or device is not initialized.")
 
         self.daq_module.set("device", self.device)
-        self.daq_module.set("type", 0)  # Непрерывная запись
+        self.daq_module.set("type", 0)  # Continuous recording
         self.daq_module.set("endless", 1)
-        self.daq_module.set("grid/mode", 2)
-        self.daq_module.set("duration", 0.02)  # Продолжительность одного блока (секунды)
-        self.daq_module.set("grid/cols", 1)  # Количество точек
-        self.daq_module.set("count", 0)  # Непрерывный сбор данных
+        self.daq_module.set("grid/mode", 2)  # Approximation
+        self.daq_module.set("duration", 0.02)  # Duration of one block (seconds)
+        self.daq_module.set("grid/cols", 1)  # Count of points
+        self.daq_module.set("count", 0)  # Continuous data acquired
         self.daq_module.execute()
 
         # Subscribe to signal paths and initialize data storage
@@ -1192,7 +1137,7 @@ class MagnetCFU(QMainWindow):
         if hasattr(self, "timer_lock_in"):
             self.timer_lock_in.start()
         else:
-            raise AttributeError("Timer для обновления данных не настроен.")
+            raise AttributeError("Timer for updating data is not configured.")
 
     def update_lock_in_data(self):
         """
@@ -1221,8 +1166,7 @@ class MagnetCFU(QMainWindow):
     def stop_continuous_plotting(self):
 
         if not self.daq_module or not self.device:
-            raise ValueError("DAQ module или устройство не инициализированы.")
-
+            raise ValueError("DAQ module or device is not initialized.")
         self.timer_lock_in.start()
 
     def read_data_update_plot(self, data_dev, timestamp0, time_window=10):
@@ -1230,6 +1174,7 @@ class MagnetCFU(QMainWindow):
         Read and process the acquired data, updating the plot as necessary.
 
         """
+
         data_read = self.daq_module.read(flat=True)
         returned_signal_paths = {signal_path.lower() for signal_path in data_read.keys()}
 
@@ -1403,3 +1348,9 @@ class MagnetCFU(QMainWindow):
     #     x_start, x_end = view_range[0]
     #     self.auto_scroll = (x_end >= -0.1)
 
+    @pyqtSlot()
+    def on_mouse_clicked(self, event):
+        pos = event.scenePos()
+        x = pos.x()
+        y = pos.y()
+        self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
