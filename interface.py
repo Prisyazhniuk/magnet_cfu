@@ -45,8 +45,8 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    version_app = '0.1.7'
-    date_build  = '21.02.2025'
+    version_app = '0.1.8'
+    date_build  = '24.02.2025'
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
@@ -978,7 +978,7 @@ class MagnetCFU(QMainWindow):
             self.send_commands(data)
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.reset_current(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
-                               -self.dsb_step.value(),
+                               0,
                                self.dsb_step.value(),
                                2 if self.dsb_I_start.value() < 0 else 1)
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
@@ -989,15 +989,15 @@ class MagnetCFU(QMainWindow):
 
     def reset_current(self, start, stop, step, polarity):
         self.send_command(f"*POL {polarity}\n")
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        self.port.waitForReadyRead(self.sb_interval.value())
         for current in rev_decimal_range(start, stop, step):
             if current > 0.05:
                 current -= 0.05
-                self.port.waitForReadyRead(self.sb_interval.value() // 2)
+                self.port.waitForReadyRead(self.sb_interval.value())
                 self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
 
         else:
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            self.port.waitForReadyRead(self.sb_interval.value())
             self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
 
         self.btn_set_curr.setChecked(False)
