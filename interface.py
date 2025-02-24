@@ -952,30 +952,28 @@ class MagnetCFU(QMainWindow):
     @pyqtSlot()
     def on_btn_set_curr(self):
         with self.open_port():
-            data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
-            self.send_commands(data)
-            self.set_current(0,
-                             abs(self.dsb_I_start.value()) + self.dsb_step.value(),
-                             self.dsb_step.value(),
-                             2 if self.dsb_I_start.value() < 0 else 1)
+            commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
+            polarity = 2 if self.dsb_I_start.value() < 0 else 1
+            commands.append(f"*POL {polarity}\n")
+            for current in decimal_range(0,
+                                         abs(self.dsb_I_start.value()) + self.dsb_step.value(),
+                                         self.dsb_step.value()):
+                voltage = current * 10
+                commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
 
-    def set_current(self, start, stop, step, polarity):
-        self.send_command(f"*POL {polarity}\n")
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        for current in decimal_range(start, stop, step):
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
-        self.btn_set_curr.setChecked(False)
+            self.send_commands(commands)
+            self.btn_set_curr.setChecked(False)
 
     @pyqtSlot()
     def on_btn_stop(self):
-        pass
+        self.port.close()
+        self.status_text.setText("Port closed")
 
     @pyqtSlot()
     def on_btn_reset(self):
         with self.open_port():
-            data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
-            self.send_commands(data)
+            commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
+            self.send_commands(commands)
             self.port.waitForReadyRead(self.sb_interval.value() // 2)
             self.reset_current(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
                                0,
@@ -1004,15 +1002,65 @@ class MagnetCFU(QMainWindow):
 
     @pyqtSlot()
     def on_btn_start_meas(self):
-        self.init_port()
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007SYST:REM\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007*CLS\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007OUTP ON\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.start_meas()
+        try:
+            self.init_port()
+            if self.dsb_I_start.value() < 0:
+                polarity = 2
+                commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n", f"*POL {polarity}\n"]
+                for current in decimal_range(
+                                             0,
+                                             abs(self.dsb_I_start.value()) + 0.01,
+                                             self.dsb_step.value()):
+                    voltage = current * 10
+                    commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
+
+                self.send_commands(commands)
+
+
+            else:
+                polarity = 1
+                commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n", f"*POL {polarity}\n"]
+                for current in decimal_range(
+                                             0,
+                                             self.dsb_I_start.value() + 0.01,
+                                             self.dsb_step.value()):
+                    voltage = current * 10
+                    commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
+
+                self.send_commands(commands)
+                self.port.waitForReadyRead(self.sb_interval.value() * 4)
+                amper = float(self.send_command("A007MEAS:CURR?\n"))
+                self.status_text.setText(str(amper))
+                self.port.close()
+
+                self.init_port()
+                rev_commands = []
+                for current in rev_decimal_range(
+                                             amper,
+                                             0,
+                                             self.dsb_step.value()):
+                    voltage = current * 10
+                    rev_commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
+
+                self.send_commands(rev_commands)
+                self.port.close()
+
+                self.btn_start_meas.setChecked(False)
+
+
+        except Exception as e:
+            self.status_text.setText(f"Error: {str(e)}")
+
+
+        # self.init_port()
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.port.write("A007SYST:REM\n".encode())
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.port.write("A007*CLS\n".encode())
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.port.write("A007OUTP ON\n".encode())
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.start_meas()
 
     def start_meas(self):
         if self.dsb_I_start.value() < 0.0:
