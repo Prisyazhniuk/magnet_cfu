@@ -8,7 +8,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from zhinst.toolkit import Session
 from zhinst.core import ziListEnum, ziDiscovery, ziDAQServer
-from PyQt5.QtCore import QTimer, Qt, QIODevice, pyqtSlot, pyqtSignal
+from PyQt5.QtCore import QTimer, Qt, QIODevice, pyqtSlot, pyqtSignal, QObject, QThread
 from PyQt5.QtSerialPort import QSerialPort, QSerialPortInfo
 from PyQt5.QtGui import QIcon
 from PyQt5.QtWidgets import (
@@ -30,6 +30,92 @@ from PyQt5.QtWidgets import (
     QFrame,
     QCheckBox
 )
+
+
+class SerialWorker(QObject):
+    progress = pyqtSignal(str)
+    finished = pyqtSignal()
+    error = pyqtSignal(str)
+    command_result = pyqtSignal(object)
+
+    def __init__(self, port_settings, interval, parent=None):
+        super().__init__(parent)
+        self.port = QSerialPort()
+        self.is_running = True
+        self.port_settings = port_settings
+        self.interval = interval
+
+    def stop(self):
+        self.is_running = False
+        if self.port.isOpen():
+            self.port.close()
+
+    def init_port(self):
+        try:
+            settings = self.port_settings
+            self.port.setPortName(settings["name"])
+            self.port.setBaudRate(settings["baudrate"])
+            self.port.setParity(settings["parity"])
+            self.port.setStopBits(settings["stopbits"])
+            self.port.setDataBits(settings["databits"])
+            self.port.setFlowControl(settings["flowcontrol"])
+
+            if not self.port.open(QIODevice.ReadWrite):
+                raise Exception("Port open error")
+
+            self.progress.emit("Port opened successfully")
+            return True
+        except Exception as e:
+            self.error.emit(f"Init port error: {e}")
+            return False
+
+
+    def send_commands(self, commands):
+        try:
+            if len(commands) == 1:
+                self.port.write(commands.encode())
+            else:
+                for cmd in commands:
+                    if not self.is_running:
+                        break
+                    self.port.write(cmd.encode())
+            if not self.port.waitForReadyRead(self.interval):
+                self.error.emit("Timeout while waiting for port response.")
+                return None
+            data = self.port.readAll().data().decode().rstrip('\r\n')
+            self.progress.emit(f"Command response: {data}")
+            return data
+        except Exception as e:
+            self.error.emit(f"Send commands error: {str(e)}")
+            return None
+
+    def run_commands(self, commands):
+        try:
+            if not self.init_port():
+                return
+
+            for task in commands:
+                if not self.is_running:
+                    break
+
+                if isinstance(task, str):
+                    # Если задача — просто строка команды
+                    response = self.send_commands(task)
+                    self.command_result.emit(response)
+
+                elif callable(task):
+                    # Если задача — функция
+                    task()
+
+            self.progress.emit("All commands executed.")
+        except Exception as e:
+            self.error.emit(f"Run commands error: {str(e)}")
+        finally:
+            if self.port.isOpen():
+                self.port.close()
+                self.progress.emit("Port closed.")
+            self.finished.emit()
+
 
 
 def decimal_range(start, stop, increment):
@@ -57,13 +143,14 @@ class MagnetCFU(QMainWindow):
         self.hysteresis_plot = self.graph_layout.addPlot(row=2, col=0)
         self.timer_lock_in   = QTimer()
 
+        self.status_lbl = QLabel("Status: Ready", self)
+        # self.status_lbl.setGeometry(100, 220, 300, 50)
+
+        self.worker_thread = None
+        self.worker = None
+
         self.timer_lock_in.timeout.connect(self.update_lock_in_data)
         self.timer_lock_in.setInterval(10)
-
-        # upd_freq = pyqtSignal(str)  # возможно, надо удалить
-        # self.graph_widget     = pg.PlotWidget()
-        # self.lock_in_gw       = pg.PlotWidget()
-        # self.hysteresis_graph = pg.PlotWidget()
 
         self.is_endless_mode_enabled = False
 
@@ -119,132 +206,8 @@ class MagnetCFU(QMainWindow):
                 "Demodulator streaming nodes unavailable - see the message above for more information."
             )
 
-        # self.daq.subscribe(self.demod_path)
-        #
-        # sampling_rate = self.daq.getDouble(f"/{self.device}/demods/0/rate")
-        # TC = self.daq.getDouble(f"/{self.device}/demods/0/timeconstant")
-        #
-        # # Without getAsEvent no value would be returned by poll.
-        # self.daq.getAsEvent('/dev4999/sigouts/0/amplitudes')
-        # self.daq.subscribe('/dev4999/sigouts/0/amplitudes')
-        # self.daq.poll(0.200, 10, 0, True)
-        #
-        # print( sampling_rate)
-
-
-        #
-        #     # Defined the total time we would like to record data for and its sampling rate.
-        #     # total_duration: Time in seconds: This examples stores all the acquired data in the `data`
-        #     # dict - remove this continuous storing in read_data_update_plot before increasing the size
-        #     # of total_duration!
-        # total_duration = 2
-        # module_sampling_rate = 3000  # Number of points/second
-        # burst_duration = 0.2  # Time in seconds for each data burst/segment.
-        # num_cols = int(np.ceil(module_sampling_rate * burst_duration))
-        # num_bursts = int(np.ceil(total_duration / burst_duration))
-        # #
-        # # # Configure the Data Acquisition Module.
-        # # # Set the device that will be used for the trigger - this parameter must be set.
-        # self.daq_module.set("device", self.device)
-        # #
-        # # # Specify continuous acquisition (type=0).
-        # self.daq_module.set("type", 0)
-        # # self.daq_module.set("endless", 1)
-        #
-        # # 'grid/mode' - Specify the interpolation method of
-        # #   the returned data samples.
-        # #
-        # # 1 = Nearest. If the interval between samples on the grid does not match
-        # #     the interval between samples sent from the device exactly, the nearest
-        # #     sample (in time) is taken.
-        # #
-        # # 2 = Linear interpolation. If the interval between samples on the grid does
-        # #     not match the interval between samples sent from the device exactly,
-        # #     linear interpolation is performed between the two neighbouring
-        # #     samples.
-        # #
-        # # 4 = Exact. The subscribed signal with the highest sampling rate (as sent
-        # #     from the device) defines the interval between samples on the DAQ
-        # #     Module's grid. If multiple signals are subscribed, these are
-        # #     interpolated onto the grid (defined by the signal with the highest
-        # #     rate, "highest_rate"). In this mode, duration is
-        # #     read-only and is defined as num_cols/highest_rate.
-        # self.daq_module.set("grid/mode", 2)
-        # # 'count' - Specify the number of bursts of data the
-        # #   module should return (if endless=0). The
-        # #   total duration of data returned by the module will be
-        # #   count*duration.
-        # self.daq_module.set("count", num_bursts)
-        # # 'duration' - Burst duration in seconds.
-        # #   If the data is interpolated linearly or using nearest neighbout, specify
-        # #   the duration of each burst of data that is returned by the DAQ Module.
-        # self.daq_module.set("duration", burst_duration)
-        # # 'grid/cols' - The number of points within each duration.
-        # #   This parameter specifies the number of points to return within each
-        # #   burst (duration seconds worth of data) that is
-        # #   returned by the DAQ Module.
-        # self.daq_module.set("grid/cols", num_cols)
-        #
-        # if self.filename:
-        #     # 'save/fileformat' - The file format to use for the saved data.
-        #     #    0 - Matlab
-        #     #    1 - CSV
-        #     self.daq_module.set("save/fileformat", 1)
-        #     # 'save/filename' - Each file will be saved to a
-        #     # new directory in the Zurich Instruments user directory with the name
-        #     # filename_NNN/filename_NNN/
-        #     self.daq_module.set("save/filename", self.filename)
-        #     # 'save/saveonread' - Automatically save the data
-        #     # to file each time read() is called.
-        #     self.daq_module.set("save/saveonread", 1)
-
-
-        # A dictionary to store all the acquired data.
-        # for signal_path in self.signal_paths:
-        #     print("Subscribing to ", signal_path)
-        #     self.daq_module.subscribe(signal_path)
-        #     self.data_dev[signal_path] = []
 
         self.clockbase = float(self.daq.getInt(f'/{self.device}/clockbase'))
-        #
-        #     ts0 = np.nan
-        #     self.read_count = 0
-
-        # # Start recording data.
-        # self.daq_module.execute()
-        # #
-        # # # Record data in a loop with timeout.
-        # timeout = 1.5 * total_duration
-        # t0_measurement = time.time()
-        # # The maximum time to wait before reading out new data.
-        # t_update = 0.9 * burst_duration
-        # while not self.daq_module.finished():
-        #     t0_loop = time.time()
-        #     if time.time() - t0_measurement > timeout:
-        #         raise Exception(
-        #             f"Timeout after {timeout} s - recording not complete."
-        #             "Are the streaming nodes enabled?"
-        #             "Has a valid signal_path been specified?"
-        #         )
-        #     self.data_dev, ts0 = self.read_data_update_plot(self.data_dev, ts0)
-        #     self.read_count += 1
-        #     # We don't need to update too quickly.
-        #     time.sleep(max(0, t_update - (time.time() - t0_loop)))
-        # #
-        # # There may be new data between the last read() and calling finished().
-        # self.data_dev, _ = self.read_data_update_plot(self.data_dev, ts0)
-        #
-        # # Before exiting, make sure that saving to file is complete (it's done in the background)
-        # # by testing the 'save/save' parameter.
-        # timeout = 1.5 * total_duration
-        # t0 = time.time()
-        # while self.daq_module.getInt("save/save") != 0:
-        #     time.sleep(0.1)
-        #     if time.time() - t0 > timeout:
-        #         raise Exception(f"Timeout after {timeout} s before data save completed.")
-        #
-        # if not self.plot:
-        #     print("Please run with `plot` to see dynamic plotting of the acquired signals.")
 
         self.start_continuous_plotting()
 
@@ -404,6 +367,7 @@ class MagnetCFU(QMainWindow):
         lock_in.addWidget(self.checkbox_x)
         lock_in.addWidget(self.checkbox_y)
         lock_in.addWidget(self.chb_endless_plot)
+        lock_in.addWidget(self.status_lbl)
 
         # self.box_04.setFixedSize(500, 300)
         # self.box_04.setLayout(hyst_layout)
@@ -901,44 +865,120 @@ class MagnetCFU(QMainWindow):
             self.port.close()
             self.status_text.setText("Port closed")
 
-    def send_command(self, command):
-        self.port.write(command.encode())
-        self.port.waitForReadyRead(self.sb_interval.value())
-        data = self.port.readAll()
-        decode_data = data.data().decode()
-        return decode_data.rstrip('\r\n')
 
-        # another realization read port
-        # if self.port.canReadLine():
-        #     idn_text = self.port.readLine().data().decode()[2:]
-        #     self.le_IDN.setText(idn_text)
-        # else:
-        #     self.status_text.setText("Can't read IDN")
+    @pyqtSlot()
+    def on_send_command(self, command):
+        settings = {
+            "name": self.cb_COM.currentText(),
+            "baudrate": int(self.cb_baud_rates.currentText()),
+            "parity": self.cb_parity.currentIndex(),
+            "databits": self.cb_data_bits.currentIndex() + 5,
+            "flowcontrol": self.cb_flow_control.currentIndex(),
+            "stopbits": self.cb_stop_bits.currentIndex(),
+        }
 
-    def send_commands(self, data):
-        for value in data:
-            self.port.writeData(value.encode())
-            self.port.waitForReadyRead(self.sb_interval.value())
+        interval = self.sb_interval.value()
 
-    # def write_port(self, data):
-    #     self.port.writeData(data.encode())
+        self.worker_thread = QThread()
+        self.worker = SerialWorker(settings, interval)
+
+        self.worker.moveToThread(self.worker_thread)
+
+        self.worker.progress.connect(self.update_status)
+        self.worker.finished.connect(self.on_worker_finished)
+        self.worker.error.connect(self.on_worker_error)
+        self.worker_thread.started.connect(lambda: self.worker.run(command))
+        self.worker_thread.finished.connect(self.worker_thread.deleteLater)
+
+        self.worker_thread.start()
+
+    # def send_command(self, command):
+    #     self.port.write(command.encode())
+    #     self.port.waitForReadyRead(self.sb_interval.value())
+    #     data = self.port.readAll()
+    #     decode_data = data.data().decode()
+    #     return decode_data.rstrip('\r\n')
     #
-    # def write_port_list(self, data):
+    #     # another realization read port
+    #     # if self.port.canReadLine():
+    #     #     idn_text = self.port.readLine().data().decode()[2:]
+    #     #     self.le_IDN.setText(idn_text)
+    #     # else:
+    #     #     self.status_text.setText("Can't read IDN")
+
+    def create_worker(self, commands):
+        settings = {
+            "name": self.cb_COM.currentText(),
+            "baudrate": int(self.cb_baud_rates.currentText()),
+            "parity": self.cb_parity.currentIndex(),
+            "databits": self.cb_data_bits.currentIndex() + 5,
+            "flowcontrol": self.cb_flow_control.currentIndex(),
+            "stopbits": self.cb_stop_bits.currentIndex(),
+        }
+        interval = self.sb_interval.value()
+
+        self.worker_thread = QThread()
+        self.worker = SerialWorker(settings, interval)
+
+        # Перемещаем worker в поток
+        self.worker.moveToThread(self.worker_thread)
+
+        # Подключение сигналов
+        self.worker.progress.connect(self.update_status)
+        self.worker.finished.connect(self.on_worker_finished)
+        self.worker.error.connect(self.on_worker_error)
+        self.worker.command_result.connect(self.on_command_result)
+
+        self.worker_thread.started.connect(lambda: self.worker.run_commands(commands))
+        self.worker_thread.finished.connect(self.worker_thread.deleteLater)
+
+        # Запуск потока
+        self.worker_thread.start()
+
+    def stop_worker_thread(self):
+        if self.worker:
+            self.worker.stop()
+            self.status_lbl.setText("Status: Stopped by user.")
+
+    def update_status(self, message):
+        self.status_lbl.setText(f"Status: {message}")
+
+    def on_worker_error(self, error_message):
+        self.status_lbl.setText(f"Error: {error_message}")
+
+    def on_worker_finished(self):
+        if self.worker_thread:
+            self.worker_thread.quit()
+        self.status_lbl.setText("Status: Finished.")
+
+    def on_command_result(self, result):
+        """Обработка ответа команды."""
+        if result:
+            print(f"Command result: {result}")
+
+
+
+    # old realization
+    # @pyqtSlot()
+    # def send_commands(self, data):
     #     for value in data:
     #         self.port.writeData(value.encode())
+    #         self.port.waitForReadyRead(self.sb_interval.value())
 
     @pyqtSlot()
     def on_btn_idn(self):
-        with self.open_port():
-            self.le_IDN.setText(self.send_command("A007*IDN?\n")[2:])
-
-            # volt, amper = self.read_measurements()
-            # self.le_volt.setText(f"{volt: .2f}")
-            # self.le_amper.setText(f"{amper: .2f}")
-
-            volt, amper = self.read_volt_amper()
-            self.le_volt.setText(f"{volt}")
-            self.le_amper.setText(f"{amper}")
+        command = ["A007*IDN?\n"]
+        self.create_worker(command)
+        # with self.open_port():
+        #     self.le_IDN.setText(self.send_command("A007*IDN?\n")[2:])
+        #
+        #     # volt, amper = self.read_measurements()
+        #     # self.le_volt.setText(f"{volt: .2f}")
+        #     # self.le_amper.setText(f"{amper: .2f}")
+        #
+        #     volt, amper = self.read_volt_amper()
+        #     self.le_volt.setText(f"{volt}")
+        #     self.le_amper.setText(f"{amper}")
 
     # def read_volt_and_amper(self):
     #     volt = float(self.send_command("A007MEAS:VOLT?\n"))
@@ -951,21 +991,36 @@ class MagnetCFU(QMainWindow):
 
     @pyqtSlot()
     def on_btn_set_curr(self):
-        with self.open_port():
-            data = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
-            self.send_commands(data)
-            self.set_current(0,
-                             abs(self.dsb_I_start.value()) + self.dsb_step.value(),
-                             self.dsb_step.value(),
-                             2 if self.dsb_I_start.value() < 0 else 1)
+        try:
+            # Initialize basic sequence of commands
+            commands = [
+                "A007SYST:REM\n",  # Set system to remote mode
+                "A007*CLS\n",  # Clear any error status
+                "A007OUTP ON\n"  # Turn output ON
+            ]
 
-    def set_current(self, start, stop, step, polarity):
-        self.send_command(f"*POL {polarity}\n")
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        for current in decimal_range(start, stop, step):
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
-        self.btn_set_curr.setChecked(False)
+            # Add polarity command based on start value
+            polarity = 2 if self.dsb_I_start.value() < 0 else 1
+            commands.append(f"A007*POL {polarity}\n")
+
+            # Calculate the current range
+            start = abs(self.dsb_I_start.value())
+            stop = start + self.dsb_step.value()
+            step = self.dsb_step.value()
+
+            # Add current commands for each iteration
+            for current in decimal_range(start, stop, step):
+                voltage = current * 10  # Voltage is 10x the current
+                commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
+
+            # Send all commands as a single worker task
+            self.create_worker(commands)
+
+            # Reset button state
+            self.btn_set_curr.setChecked(False)
+            self.update_status("Current settings successfully applied.")
+        except Exception as e:
+            self.update_status(f"Error: {str(e)}")
 
     @pyqtSlot()
     def on_btn_stop(self):
