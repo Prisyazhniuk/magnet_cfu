@@ -1098,7 +1098,7 @@ class MagnetCFU(QMainWindow):
     def get_device_data(self):
 
         self.timer.start(1000)  # 1000 ms
-        
+
         self.port.write("A007FETC?\n".encode())
         self.port.waitForReadyRead(self.sb_interval.value())
         real_meas_ascii = self.port.readAll()
