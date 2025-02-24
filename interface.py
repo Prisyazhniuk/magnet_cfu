@@ -45,7 +45,7 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    version_app = '0.1.8'
+    version_app = '0.1.9'
     date_build  = '24.02.2025'
 
     def __init__(self, parent=None):
