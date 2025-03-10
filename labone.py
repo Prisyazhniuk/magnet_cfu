@@ -51,6 +51,106 @@ from zhinst.core import ziListEnum
 import matplotlib.pyplot as plt
 
 
+# старый рабочий вариант из файла interface
+        # data_read = self.daq_module.read(flat=True)  # Считывание новых данных
+        # returned_signal_paths = [
+        #     signal_path.lower() for signal_path in data_read.keys()
+        # ]
+        #
+        # for signal_path in self.signal_paths:
+        #     if signal_path.lower() in returned_signal_paths:
+        #         for index, signal_burst in enumerate(data_read[signal_path.lower()]):
+        #             if timestamp0 is None or (isinstance(timestamp0, (float, int)) and np.isnan(timestamp0)):
+        #                 timestamp0 = signal_burst["timestamp"][0, 0]  # Время старта
+        #
+        #             # Преобразование временной метки в секунды
+        #             t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+        #             value = signal_burst["value"][0, :]
+        #
+        #             # Сохранение данных
+        #             data_dev[signal_path].extend(signal_burst["value"][0, :].tolist())  # Добавление точек на график
+        #
+        #             # Обновление графика
+        #             if self.plot:
+        #                 self.lock_in_gw.plot([], [], pen={'color': 'w', 'width': 1.5})
+        #
+        #
+        #                 # Если график ещё не создан — инициализация
+        #                 if not hasattr(self, f"data_line_{signal_path}"):
+        #                     setattr(self, f"data_line_{signal_path}",
+        #                             self.lock_in_gw.plot([], [] )) # pen={'color':'w', 'width':1.5}))
+        #
+        #
+        #                 data_line = getattr(self, f"data_line_{signal_path}")
+        #                 # data_line_x = getattr(self, f"data_line_{signal_path}")
+        #                 # data_line_y = getattr(self, f"data_line_{signal_path}")
+        #
+        #                 # Добавляем новые точки (объединяем старые и новые)
+        #
+        #                 data_line.setData(
+        #                     np.append(data_line.xData, t),
+        #                     np.append(data_line.yData, value)
+        #                 )
+        #
+        # # Обновляем заголовок графика с прогрессом
+        # if self.plot:
+        #     progress = self.daq_module.progress()[0]
+        #     self.lock_in_gw.setTitle(f"Progress: {100 * progress:.2f}%")
+        #
+        # return data_dev, timestamp0
+
+    # def read_data_update_plot(self, data_dev, timestamp0):
+    #     """
+    #     Read the acquired data out from the module and plot it. Raise an
+    #     AssertionError if no data is returned.
+    #     """
+    #     data_read = self.daq_module.read(True)
+    #     returned_signal_paths = [
+    #         signal_path.lower() for signal_path in data_read.keys()
+    #     ]
+    #     progress = self.daq_module.progress()[0]
+    #     # Loop over all the subscribed signals:
+    #     for signal_path in self.signal_paths:
+    #         if signal_path.lower() in returned_signal_paths:
+    #             # Loop over all the bursts for the subscribed signal. More than
+    #             # one burst may be returned at a time, in particular if we call
+    #             # read() less frequently than the burst_duration.
+    #             for index, signal_burst in enumerate(data_read[signal_path.lower()]):
+    #                 if np.any(np.isnan(timestamp0)):
+    #                     # Set our first timestamp to the first timestamp we obtain.
+    #                     timestamp0 = signal_burst["timestamp"][0, 0]
+    #                 # Convert from device ticks to time in seconds.
+    #                 t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+    #                 value = signal_burst["value"][0, :]
+    #                 if self.plot:
+    #                     self.data_line = self.lock_in_gw.plot(t, value)
+    #                 num_samples = len(signal_burst["value"][0, :])
+    #                 dt = (
+    #                              signal_burst["timestamp"][0, -1]
+    #                              - signal_burst["timestamp"][0, 0]
+    #                      ) / self.clockbase
+    #                 data_dev[signal_path].append(signal_burst)
+    #
+    #                 # print(
+    #                 #     f"Read: {self.read_count}, progress: {100 * progress:.2f}%.",
+    #                 #     f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
+    #                 # )
+    #         else:
+    #             # Note: If we read before the next burst has finished, there may be no new data.
+    #             # No action required.
+    #             pass
+    #     #
+    #     # Update the plot.
+    #     if self.plot:
+    #         # self.timer.setInterval(50)
+    #         # self.timer.start()
+    #         self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
+    #         # plot.pause(0.01)
+    #     return data_dev, timestamp0
+
+
+
+
 def run_example(
     device_id: str,
     server_host: str = "localhost",

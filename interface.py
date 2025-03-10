@@ -4,6 +4,7 @@ import time
 import numpy as np
 import pyqtgraph as pg
 
+from contextlib import contextmanager
 from pathlib import Path
 from zhinst.toolkit import Session
 from zhinst.core import ziListEnum, ziDiscovery, ziDAQServer
@@ -26,8 +27,10 @@ from PyQt5.QtWidgets import (
     QSpinBox,
     QComboBox,
     QSplitter,
-    QFrame
+    QFrame,
+    QCheckBox
 )
+
 
 def decimal_range(start, stop, increment):
     while start < stop:
@@ -42,21 +45,38 @@ def rev_decimal_range(start, stop, increment):
 
 
 class MagnetCFU(QMainWindow):
-    upd_freq = pyqtSignal(str)
+    version_app = '0.1.9'
+    date_build  = '24.02.2025'
 
     def __init__(self, parent=None):
         super(QMainWindow, self).__init__(parent)
 
-        self.port             = QSerialPort()
-        self.graph_widget     = pg.PlotWidget()
-        self.lock_in_gw       = pg.PlotWidget()
+        self.port            = QSerialPort()
+        self.graph_layout    = pg.GraphicsLayoutWidget()
+        self.lock_in_plot    = self.graph_layout.addPlot(row=1, col=0)
+        self.hysteresis_plot = self.graph_layout.addPlot(row=2, col=0)
+        self.timer_lock_in   = QTimer()
 
+        self.timer_lock_in.timeout.connect(self.update_lock_in_data)
+        self.timer_lock_in.setInterval(10)
 
-        self.timer            = QTimer()
-        self.timer_mang       = QTimer()
-        self.upd_freq_timer   = QTimer()
+        # upd_freq = pyqtSignal(str)  # возможно, надо удалить
+        # self.graph_widget     = pg.PlotWidget()
+        # self.lock_in_gw       = pg.PlotWidget()
+        # self.hysteresis_graph = pg.PlotWidget()
 
-        self.output_te        = ''
+        self.is_endless_mode_enabled = False
+
+        self.time_window = 10
+        self.max_history = 1000
+        self.data_buffer = {}
+        self.timestamp0 = None
+
+        # self.timer_mang       = QTimer()
+        # self.upd_freq_timer   = QTimer()
+
+        self.real_curr        = None
+        self.real_volt        = None
         self.buffer           = bytearray()
         self.discovery        = ziDiscovery()
         self.device           = self.discovery.find('mf-dev4999').lower()
@@ -79,8 +99,12 @@ class MagnetCFU(QMainWindow):
         self.plot: bool       = True
         self.data_dev         = {}
 
+        self._setup_plots()
         self.signal_paths.append(self.demod_path + ".x")
         self.signal_paths.append(self.demod_path + ".y")
+
+        # for debug
+        self.output_test = ''
 
         # Check the device has demodulators.
         flags = ziListEnum.recursive | ziListEnum.absolute | ziListEnum.streamingonly
@@ -113,127 +137,137 @@ class MagnetCFU(QMainWindow):
         #     # total_duration: Time in seconds: This examples stores all the acquired data in the `data`
         #     # dict - remove this continuous storing in read_data_update_plot before increasing the size
         #     # of total_duration!
+<<<<<<< HEAD
         total_duration = 2
         module_sampling_rate = 3000  # Number of points/second
         burst_duration = 0.2  # Time in seconds for each data burst/segment.
         num_cols = int(np.ceil(module_sampling_rate * burst_duration))
         num_bursts = int(np.ceil(total_duration / burst_duration))
+=======
+        # total_duration = 2
+        # module_sampling_rate = 3000  # Number of points/second
+        # burst_duration = 0.2  # Time in seconds for each data burst/segment.
+        # num_cols = int(np.ceil(module_sampling_rate * burst_duration))
+        # num_bursts = int(np.ceil(total_duration / burst_duration))
+        # #
+        # # # Configure the Data Acquisition Module.
+        # # # Set the device that will be used for the trigger - this parameter must be set.
+        # self.daq_module.set("device", self.device)
+        # #
+        # # # Specify continuous acquisition (type=0).
+        # self.daq_module.set("type", 0)
+        # # self.daq_module.set("endless", 1)
+>>>>>>> 4020c5db9c89cec9eb751397274fc0b136c30499
         #
-        # # Configure the Data Acquisition Module.
-        # # Set the device that will be used for the trigger - this parameter must be set.
-        self.daq_module.set("device", self.device)
+        # # 'grid/mode' - Specify the interpolation method of
+        # #   the returned data samples.
+        # #
+        # # 1 = Nearest. If the interval between samples on the grid does not match
+        # #     the interval between samples sent from the device exactly, the nearest
+        # #     sample (in time) is taken.
+        # #
+        # # 2 = Linear interpolation. If the interval between samples on the grid does
+        # #     not match the interval between samples sent from the device exactly,
+        # #     linear interpolation is performed between the two neighbouring
+        # #     samples.
+        # #
+        # # 4 = Exact. The subscribed signal with the highest sampling rate (as sent
+        # #     from the device) defines the interval between samples on the DAQ
+        # #     Module's grid. If multiple signals are subscribed, these are
+        # #     interpolated onto the grid (defined by the signal with the highest
+        # #     rate, "highest_rate"). In this mode, duration is
+        # #     read-only and is defined as num_cols/highest_rate.
+        # self.daq_module.set("grid/mode", 2)
+        # # 'count' - Specify the number of bursts of data the
+        # #   module should return (if endless=0). The
+        # #   total duration of data returned by the module will be
+        # #   count*duration.
+        # self.daq_module.set("count", num_bursts)
+        # # 'duration' - Burst duration in seconds.
+        # #   If the data is interpolated linearly or using nearest neighbout, specify
+        # #   the duration of each burst of data that is returned by the DAQ Module.
+        # self.daq_module.set("duration", burst_duration)
+        # # 'grid/cols' - The number of points within each duration.
+        # #   This parameter specifies the number of points to return within each
+        # #   burst (duration seconds worth of data) that is
+        # #   returned by the DAQ Module.
+        # self.daq_module.set("grid/cols", num_cols)
         #
-        # # Specify continuous acquisition (type=0).
-        self.daq_module.set("type", 0)
-        # self.daq_module.set("endless", 1)
-
-        # 'grid/mode' - Specify the interpolation method of
-        #   the returned data samples.
-        #
-        # 1 = Nearest. If the interval between samples on the grid does not match
-        #     the interval between samples sent from the device exactly, the nearest
-        #     sample (in time) is taken.
-        #
-        # 2 = Linear interpolation. If the interval between samples on the grid does
-        #     not match the interval between samples sent from the device exactly,
-        #     linear interpolation is performed between the two neighbouring
-        #     samples.
-        #
-        # 4 = Exact. The subscribed signal with the highest sampling rate (as sent
-        #     from the device) defines the interval between samples on the DAQ
-        #     Module's grid. If multiple signals are subscribed, these are
-        #     interpolated onto the grid (defined by the signal with the highest
-        #     rate, "highest_rate"). In this mode, duration is
-        #     read-only and is defined as num_cols/highest_rate.
-        self.daq_module.set("grid/mode", 2)
-        # 'count' - Specify the number of bursts of data the
-        #   module should return (if endless=0). The
-        #   total duration of data returned by the module will be
-        #   count*duration.
-        self.daq_module.set("count", num_bursts)
-        # 'duration' - Burst duration in seconds.
-        #   If the data is interpolated linearly or using nearest neighbout, specify
-        #   the duration of each burst of data that is returned by the DAQ Module.
-        self.daq_module.set("duration", burst_duration)
-        # 'grid/cols' - The number of points within each duration.
-        #   This parameter specifies the number of points to return within each
-        #   burst (duration seconds worth of data) that is
-        #   returned by the DAQ Module.
-        self.daq_module.set("grid/cols", num_cols)
-
-        if self.filename:
-            # 'save/fileformat' - The file format to use for the saved data.
-            #    0 - Matlab
-            #    1 - CSV
-            self.daq_module.set("save/fileformat", 1)
-            # 'save/filename' - Each file will be saved to a
-            # new directory in the Zurich Instruments user directory with the name
-            # filename_NNN/filename_NNN/
-            self.daq_module.set("save/filename", self.filename)
-            # 'save/saveonread' - Automatically save the data
-            # to file each time read() is called.
-            self.daq_module.set("save/saveonread", 1)
+        # if self.filename:
+        #     # 'save/fileformat' - The file format to use for the saved data.
+        #     #    0 - Matlab
+        #     #    1 - CSV
+        #     self.daq_module.set("save/fileformat", 1)
+        #     # 'save/filename' - Each file will be saved to a
+        #     # new directory in the Zurich Instruments user directory with the name
+        #     # filename_NNN/filename_NNN/
+        #     self.daq_module.set("save/filename", self.filename)
+        #     # 'save/saveonread' - Automatically save the data
+        #     # to file each time read() is called.
+        #     self.daq_module.set("save/saveonread", 1)
 
 
         # A dictionary to store all the acquired data.
-        for signal_path in self.signal_paths:
-            print("Subscribing to ", signal_path)
-            self.daq_module.subscribe(signal_path)
-            self.data_dev[signal_path] = []
+        # for signal_path in self.signal_paths:
+        #     print("Subscribing to ", signal_path)
+        #     self.daq_module.subscribe(signal_path)
+        #     self.data_dev[signal_path] = []
 
         self.clockbase = float(self.daq.getInt(f'/{self.device}/clockbase'))
-
-        if self.plot:
-            # self.lock_in_gw.setBackground('#581845')
-            styles = {"color": "#FFC300", "font-size": "15px"}
-
-            self.lock_in_gw.setLabel("left", "Voltage (U)", **styles)
-            self.lock_in_gw.setLabel("bottom", "Time (s)", **styles)
-            # self.lock_in_gw.setXRange(0, total_duration, padding=0)
-
-            ts0 = np.nan
-            self.read_count = 0
-
-        # Start recording data.
-        self.daq_module.execute()
         #
-        # # Record data in a loop with timeout.
-        timeout = 1.5 * total_duration
-        t0_measurement = time.time()
-        # The maximum time to wait before reading out new data.
-        t_update = 0.9 * burst_duration
-        while not self.daq_module.finished():
-            t0_loop = time.time()
-            if time.time() - t0_measurement > timeout:
-                raise Exception(
-                    f"Timeout after {timeout} s - recording not complete."
-                    "Are the streaming nodes enabled?"
-                    "Has a valid signal_path been specified?"
-                )
-            self.data_dev, ts0 = self.read_data_update_plot(self.data_dev, ts0)
-            self.read_count += 1
-            # We don't need to update too quickly.
-            time.sleep(max(0, t_update - (time.time() - t0_loop)))
+        #     ts0 = np.nan
+        #     self.read_count = 0
+
+        # # Start recording data.
+        # self.daq_module.execute()
+        # #
+        # # # Record data in a loop with timeout.
+        # timeout = 1.5 * total_duration
+        # t0_measurement = time.time()
+        # # The maximum time to wait before reading out new data.
+        # t_update = 0.9 * burst_duration
+        # while not self.daq_module.finished():
+        #     t0_loop = time.time()
+        #     if time.time() - t0_measurement > timeout:
+        #         raise Exception(
+        #             f"Timeout after {timeout} s - recording not complete."
+        #             "Are the streaming nodes enabled?"
+        #             "Has a valid signal_path been specified?"
+        #         )
+        #     self.data_dev, ts0 = self.read_data_update_plot(self.data_dev, ts0)
+        #     self.read_count += 1
+        #     # We don't need to update too quickly.
+        #     time.sleep(max(0, t_update - (time.time() - t0_loop)))
+        # #
+        # # There may be new data between the last read() and calling finished().
+        # self.data_dev, _ = self.read_data_update_plot(self.data_dev, ts0)
         #
-        # There may be new data between the last read() and calling finished().
-        self.data_dev, _ = self.read_data_update_plot(self.data_dev, ts0)
+        # # Before exiting, make sure that saving to file is complete (it's done in the background)
+        # # by testing the 'save/save' parameter.
+        # timeout = 1.5 * total_duration
+        # t0 = time.time()
+        # while self.daq_module.getInt("save/save") != 0:
+        #     time.sleep(0.1)
+        #     if time.time() - t0 > timeout:
+        #         raise Exception(f"Timeout after {timeout} s before data save completed.")
+        #
+        # if not self.plot:
+        #     print("Please run with `plot` to see dynamic plotting of the acquired signals.")
 
-        # Before exiting, make sure that saving to file is complete (it's done in the background)
-        # by testing the 'save/save' parameter.
-        timeout = 1.5 * total_duration
-        t0 = time.time()
-        while self.daq_module.getInt("save/save") != 0:
-            time.sleep(0.1)
-            if time.time() - t0 > timeout:
-                raise Exception(f"Timeout after {timeout} s before data save completed.")
-
-        if not self.plot:
-            print("Please run with `plot` to see dynamic plotting of the acquired signals.")
+        self.start_continuous_plotting()
 
 # ----------------------------------------------------------------------------------------------------------------------
 
         # Creating interface elements | Control tab
         self.cb_COM         = QComboBox()
+
+        self.checkbox_x = QCheckBox("Show X")
+        self.checkbox_x.setChecked(True)
+        self.checkbox_y = QCheckBox("Show Y")
+        self.checkbox_y.setChecked(True)
+        self.chb_endless_plot = QCheckBox("Endless plot")
+        self.chb_endless_plot.setChecked(False)
+
 
         self.lbl_COM        = QLabel("COM")
         self.lbl_I_start    = QLabel("I start, A")
@@ -265,10 +299,12 @@ class MagnetCFU(QMainWindow):
         self.btn_open       = QPushButton("&Open...")
         self.btn_save       = QPushButton("&Save")
 
+        self.btn_clear_lock_in = QPushButton("Clear data")
+
         self.box_01         = QGroupBox("Info")
         self.box_02         = QGroupBox("Value")
         self.box_03         = QGroupBox("Control")
-        self.box_04         = QGroupBox("Hysteresis")
+        # self.box_04         = QGroupBox("Hysteresis")
         self.box_lock_in    = QGroupBox("Lock-in")
 
         self.lbl_volt.setFixedSize(45, 40)
@@ -344,6 +380,10 @@ class MagnetCFU(QMainWindow):
         self.cb_COM.addItems([port.portName() for port in QSerialPortInfo().availablePorts()])
         if self.cb_COM.count() == 0:
             self.cb_COM.addItem("no ports")
+        elif self.cb_COM.count() > 0:
+            self.cb_COM.setCurrentText('COM4')
+        else:
+            self.cb_COM.setCurrentIndex(0)
 
         # Window setting
         magnet_dir = os.path.dirname(os.path.realpath(__file__))
@@ -357,25 +397,30 @@ class MagnetCFU(QMainWindow):
         outer_vlayout = QVBoxLayout()
         outer_hlayout = QHBoxLayout()
         hyst_outer    = QVBoxLayout()
-        hyst_layout   = QVBoxLayout()
+        # hyst_layout   = QVBoxLayout()
         lock_in       = QVBoxLayout()
         top_layout    = QGridLayout()
         middle_layout = QGridLayout()
         bottom_layout = QGridLayout()
 
-        bottom_sp.setFixedSize(100, 130)
+        # bottom_sp.setFixedSize(100, 130)
 
-        hyst_layout.addWidget(self.graph_widget)
-        lock_in.addWidget(self.lock_in_gw)
+        # hyst_layout.addWidget(self.hysteresis_graph)
+        lock_in.addWidget(self.graph_layout)
+        # lock_in.addWidget(self.lock_in_gw)
+        lock_in.addWidget(self.btn_clear_lock_in)
+        lock_in.addWidget(self.checkbox_x)
+        lock_in.addWidget(self.checkbox_y)
+        lock_in.addWidget(self.chb_endless_plot)
 
-        self.box_04.setFixedSize(500, 300)
-        self.box_04.setLayout(hyst_layout)
-        self.box_lock_in.setFixedSize(500, 300)
+        # self.box_04.setFixedSize(500, 300)
+        # self.box_04.setLayout(hyst_layout)
+        # self.box_lock_in.setFixedSize(500, 300)
         self.box_lock_in.setLayout(lock_in)
 
-        hyst_outer.addWidget(self.box_04)
+        # hyst_outer.addWidget(self.box_04)
         hyst_outer.addWidget(self.box_lock_in)
-        hyst_outer.addWidget(bottom_sp)
+        # hyst_outer.addWidget(bottom_sp)
 
         self.setStatusBar(QStatusBar())
         self.status_text = QLabel()
@@ -448,6 +493,12 @@ class MagnetCFU(QMainWindow):
         self.btn_reset.clicked.connect     (self.on_btn_reset)
         self.btn_start_meas.clicked.connect(self.on_btn_start_meas)
         self.btn_open.clicked.connect      (self.on_btn_open)
+
+        self.btn_clear_lock_in.clicked.connect(self.clear_lock_in)
+
+        self.checkbox_x.stateChanged.connect(self.toggle_x_graph)
+        self.checkbox_y.stateChanged.connect(self.toggle_y_graph)
+        self.chb_endless_plot.stateChanged.connect(self.toggle_endless)
 
         self.box_01.setLayout(top_layout)
         self.box_02.setLayout(middle_layout)
@@ -646,18 +697,18 @@ class MagnetCFU(QMainWindow):
         # Connect lock-in button
         self.le_freq.setMaxLength(13)
 
-        self.upd_freq_timer.setInterval(500)
-        self.upd_freq_timer.timeout.connect(self.changed_freq)
-        self.upd_freq_timer.start()
-
-        QTimer.singleShot(5000, self.stop_selection)
+        # self.upd_freq_timer.setInterval(500)
+        # self.upd_freq_timer.timeout.connect(self.changed_freq)
+        # self.upd_freq_timer.start()
+        #
+        # QTimer.singleShot(5000, self.stop_selection)
 
         self.le_range.textChanged.connect        (self.changed_range)
         self.le_scaling.textChanged.connect      (self.changed_scaling)
         self.le_phase.textChanged.connect        (self.changed_phase)
         self.le_transfer.textChanged.connect     (self.changed_transfer)
         self.le_tc.textChanged.connect           (self.changed_tc)
-        self.le_amp.editingFinished.connect          (self.changed_amp)
+        self.le_amp.editingFinished.connect      (self.changed_amp)
 
         self.cb_order.currentIndexChanged.connect(self.changed_order)
 
@@ -829,201 +880,195 @@ class MagnetCFU(QMainWindow):
     def flow_control(self):
         return self.cb_flow_control.currentIndex()
 
-    def receive_port(self):
-        self.port.waitForReadyRead(self.sb_interval.value())
-        data = self.port.readAll()
-        self.serial_data = data.data().decode('utf8')
-        return self.serial_data.rstrip('\r\n')
-
-    def write_port(self, data):
-        self.port.writeData(data.encode())
-
-    def write_port_list(self, data):
-        for value in data:
-            self.port.writeData(value.encode())
-
     def init_port(self):
         if not QSerialPortInfo.availablePorts():
             self.status_text.setText("no ports")
-        else:
-            self.port.setPortName(self.cb_COM.currentText())
-            self.port.setBaudRate(int(self.cb_baud_rates.currentText()))
-            self.port.setParity(self.cb_parity.currentIndex())
-            self.port.setDataBits(int(self.cb_data_bits.currentIndex() + 5))
-            self.port.setFlowControl(self.cb_flow_control.currentIndex())
-            self.port.setStopBits(self.cb_stop_bits.currentIndex())
 
-        ready = self.port.open(QIODevice.ReadWrite)
-        if not ready:
+        self.port.setPortName(self.cb_COM.currentText())
+        self.port.setBaudRate(int(self.cb_baud_rates.currentText()))
+        self.port.setParity(self.cb_parity.currentIndex())
+        self.port.setDataBits(int(self.cb_data_bits.currentIndex() + 5))
+        self.port.setFlowControl(self.cb_flow_control.currentIndex())
+        self.port.setStopBits(self.cb_stop_bits.currentIndex())
+
+        if not self.port.open(QIODevice.ReadWrite):
             self.status_text.setText("Port open error")
-            self.serial_control_enable(True)
-        else:
-            self.status_text.setText("Port opened")
+            # self.serial_control_enable(True) # если код работает, удалить всю функцию
+            return False
+
+        self.status_text.setText("Remote control completed")
+        return True
+
+    @contextmanager
+    def open_port(self):
+        if not self.init_port():
+            raise Exception("Can't open port")
+        try:
+            yield
+        finally:
+            self.port.close()
+            self.status_text.setText("Port closed")
+
+    def send_command(self, command):
+        self.port.write(command.encode())
+        self.port.waitForReadyRead(self.sb_interval.value())
+        data = self.port.readAll()
+        decode_data = data.data().decode()
+        return decode_data.rstrip('\r\n')
+
+        # another realization read port
+        # if self.port.canReadLine():
+        #     idn_text = self.port.readLine().data().decode()[2:]
+        #     self.le_IDN.setText(idn_text)
+        # else:
+        #     self.status_text.setText("Can't read IDN")
+
+    def send_commands(self, data):
+        for value in data:
+            self.port.writeData(value.encode())
+            self.port.waitForReadyRead(self.sb_interval.value())
+
+    # def write_port(self, data):
+    #     self.port.writeData(data.encode())
+    #
+    # def write_port_list(self, data):
+    #     for value in data:
+    #         self.port.writeData(value.encode())
 
     @pyqtSlot()
     def on_btn_idn(self):
-        self.init_port()
-        self.write_port("A007*IDN?\n")
-        self.read_idn_from_port()
+        with self.open_port():
+            self.le_IDN.setText(self.send_command("A007*IDN?\n")[2:])
 
-        # self.write_port("*POL?\n")
-        # pol = self.read_polarity()
-        # print(pol)
+            # volt, amper = self.read_measurements()
+            # self.le_volt.setText(f"{volt: .2f}")
+            # self.le_amper.setText(f"{amper: .2f}")
 
-        # if pol == "2":
-        #     self.le_volt.setInputMask("-")
+            volt, amper = self.read_volt_amper()
+            self.le_volt.setText(f"{volt}")
+            self.le_amper.setText(f"{amper}")
 
-        self.port.write("A007MEAS:VOLT?\n".encode())
-        self.read_volt()
+    # def read_volt_and_amper(self):
+    #     volt = float(self.send_command("A007MEAS:VOLT?\n"))
+    #     amper = float(self.send_command("A007MEAS:CURR?\n"))
+    #     return volt, amper
 
-        self.port.write("A007MEAS:CURR?\n".encode())
-        self.read_amper()
-        self.port.close()
-
-    def read_idn_from_port(self):
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-
-        while self.port.canReadLine():
-            text = self.port.readLine().data().decode()
-            text = text.rstrip('\r\n')
-            self.output_idn = text
-            self.le_IDN.setText(text)
-
-    def read_volt(self):
-        # self.receive_port()
-        # self.write_port("*POL?\n")
-        # pol = self.read_polarity()
-
-        self.port.waitForReadyRead(self.sb_interval.value())
-        volt_f = 0.0
-
-        while self.port.canReadLine():
-            volt   = self.port.readLine().data().decode()
-            volt   = volt.rstrip('\r\n')
-            volt_f = float(volt)
-        self.le_volt.setText("{:.2f}".format(volt_f))
-
-    def read_amper(self):
-        self.port.waitForReadyRead(self.sb_interval.value())
-        amper_f = 0.0
-
-        while self.port.canReadLine():
-            amper = self.port.readLine().data().decode()
-            amper = amper.rstrip('\r\n')
-
-            amper_f = float(amper)
-        self.le_amper.setText("{:.2f}".format(amper_f))
+    def read_volt_amper(self):
+        volt, amper = self.send_command("A007FETC?\n").split(',')
+        return float(volt), float(amper)
 
     @pyqtSlot()
     def on_btn_set_curr(self):
-        self.status_text.setText("Port opened")
-        self.init_port()
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007SYST:REM\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007*CLS\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007OUTP ON\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.set_curr()
+        with self.open_port():
+            commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
+            polarity = 2 if self.dsb_I_start.value() < 0 else 1
+            commands.append(f"*POL {polarity}\n")
+            for current in decimal_range(0,
+                                         abs(self.dsb_I_start.value()) + self.dsb_step.value(),
+                                         self.dsb_step.value()):
+                voltage = current * 10
+                commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
 
-    def read_polarity(self):
-        self.port.waitForReadyRead(self.sb_interval.value())
-
-        while self.port.canReadLine():
-            polarity = self.port.readLine().data().decode()
-            polarity = polarity.rstrip('\r\n')
-
-            # print(type(polarity))
-
-            return polarity
-
-    def set_curr(self):
-        if self.dsb_I_start.value() < 0.0:
-            self.port.write("*POL 2\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            for _i in decimal_range(0, abs(self.dsb_I_start.value()) + self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
-                self.btn_set_curr.setChecked(False)
-
-        if self.dsb_I_start.value() > 0.0:
-            self.port.write("*POL 1\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value())
-            for _i in decimal_range(0, self.dsb_I_start.value() + self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
-                self.btn_set_curr.setChecked(False)
+            self.send_commands(commands)
+            self.btn_set_curr.setChecked(False)
 
     @pyqtSlot()
     def on_btn_stop(self):
-        pass
+        self.port.close()
+        self.status_text.setText("Port closed")
 
     @pyqtSlot()
     def on_btn_reset(self):
-        self.init_port()
-        if self.dsb_I_start.value() > 0:
-            for _i in rev_decimal_range(self.dsb_I_start.value() - self.dsb_step.value(),
-                                        0 - self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
+        with self.open_port():
+            commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n"]
+            self.send_commands(commands)
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            self.reset_current(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
+                               0,
+                               self.dsb_step.value(),
+                               2 if self.dsb_I_start.value() < 0 else 1)
+            self.port.waitForReadyRead(self.sb_interval.value() // 2)
+            data = ["*POL 1\n", "A007OUTP OFF\n", "A007*RST\n"]
+            self.send_commands(data)
+        self.status_text.setText("Port closed")
+        self.btn_reset.setChecked(False)
 
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("*POL 1\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("A007OUTP OFF\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("A007*RST\n".encode())
-            self.port.close()
-            self.status_text.setText("Port closed")
-            self.btn_reset.setChecked(False)
+    def reset_current(self, start, stop, step, polarity):
+        self.send_command(f"*POL {polarity}\n")
+        self.port.waitForReadyRead(self.sb_interval.value())
+        for current in rev_decimal_range(start, stop, step):
+            if current > 0.05:
+                current -= 0.05
+                self.port.waitForReadyRead(self.sb_interval.value())
+                self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
 
-        elif self.dsb_I_start.value() < 0.0:
-            for _i in rev_decimal_range(abs(self.dsb_I_start.value()) - self.dsb_step.value(),
-                                        0 - self.dsb_step.value(), self.dsb_step.value()):
-                self.receive_port()
-                a = "A007SOUR:VOLT "
-                b = _i * 10
-                c = "CURR "
-                d = _i
-                res = f"{a}{b:.3f};{c}{d:.3f}\n"
-                self.port.write(res.encode())
+        else:
+            self.port.waitForReadyRead(self.sb_interval.value())
+            self.send_command(f"A007SOUR:VOLT {current * 10:.3f};CURR {current:.3f}\n")
 
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("*POL 1\n".encode())
-            self.port.waitForReadyRead(self.sb_interval.value() // 2)
-            self.port.write("A007OUTP OFF\n".encode())
-            self.port.write("A007*RST\n".encode())
-            self.port.close()
-            self.status_text.setText("Port closed")
-            self.btn_reset.setChecked(False)
+        self.btn_set_curr.setChecked(False)
 
     @pyqtSlot()
     def on_btn_start_meas(self):
-        self.init_port()
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007SYST:REM\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007*CLS\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.port.write("A007OUTP ON\n".encode())
-        self.port.waitForReadyRead(self.sb_interval.value() // 2)
-        self.start_meas()
+        try:
+            self.init_port()
+            if self.dsb_I_start.value() < 0:
+                polarity = 2
+                commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n", f"*POL {polarity}\n"]
+                for current in decimal_range(
+                                             0,
+                                             abs(self.dsb_I_start.value()) + 0.01,
+                                             self.dsb_step.value()):
+                    voltage = current * 10
+                    commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
+
+                self.send_commands(commands)
+
+
+            else:
+                polarity = 1
+                commands = ["A007SYST:REM\n", "A007*CLS\n", "A007OUTP ON\n", f"*POL {polarity}\n"]
+                for current in decimal_range(
+                                             0,
+                                             self.dsb_I_start.value() + 0.01,
+                                             self.dsb_step.value()):
+                    voltage = current * 10
+                    commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
+
+                self.send_commands(commands)
+                self.port.waitForReadyRead(self.sb_interval.value() * 4)
+                amper = float(self.send_command("A007MEAS:CURR?\n"))
+                self.status_text.setText(str(amper))
+                self.port.close()
+
+                self.init_port()
+                rev_commands = []
+                for current in rev_decimal_range(
+                                             amper,
+                                             0,
+                                             self.dsb_step.value()):
+                    voltage = current * 10
+                    rev_commands.append(f"A007SOUR:VOLT {voltage:.3f};CURR {current:.3f}\n")
+
+                self.send_commands(rev_commands)
+                self.port.close()
+
+                self.btn_start_meas.setChecked(False)
+
+
+        except Exception as e:
+            self.status_text.setText(f"Error: {str(e)}")
+
+
+        # self.init_port()
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.port.write("A007SYST:REM\n".encode())
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.port.write("A007*CLS\n".encode())
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.port.write("A007OUTP ON\n".encode())
+        # self.port.waitForReadyRead(self.sb_interval.value() // 2)
+        # self.start_meas()
 
     def start_meas(self):
         if self.dsb_I_start.value() < 0.0:
@@ -1106,59 +1151,262 @@ class MagnetCFU(QMainWindow):
     def on_btn_open(self):
         pass
 
+    def get_device_data(self):
+
+        self.timer.start(1000)  # 1000 ms
+
+        self.port.write("A007FETC?\n".encode())
+        self.port.waitForReadyRead(self.sb_interval.value())
+        real_meas_ascii = self.port.readAll()
+        real_meas = real_meas_ascii.data().decode().rstrip('\r\n')
+        list_real_meas = real_meas.split(',')
+
+        data_v = []
+        data_i = []
+
+        data_v.append(float(list_real_meas[0]))
+        data_i.append(float(list_real_meas[1]))
+
+        return data_v, data_i
+
+    def start_continuous_plotting(self):
+
+        if not self.daq_module or not self.device:
+            raise ValueError("DAQ module or device is not initialized.")
+
+        self.daq_module.set("device", self.device)
+        self.daq_module.set("type", 0)  # Continuous recording
+        self.daq_module.set("endless", 1)
+        self.daq_module.set("grid/mode", 2)  # Approximation
+        self.daq_module.set("duration", 0.02)  # Duration of one block (seconds)
+        self.daq_module.set("grid/cols", 1)  # Count of points
+        self.daq_module.set("count", 0)  # Continuous data acquired
+        self.daq_module.execute()
+
+        # Subscribe to signal paths and initialize data storage
+        for signal_path in self.signal_paths:
+            signal_path_lower = signal_path.lower()
+            print(f"Subscribing to {signal_path}")
+            self.daq_module.subscribe(signal_path_lower)
+            self.data_dev[signal_path] = []
+
+        if hasattr(self, "timer_lock_in"):
+            self.timer_lock_in.start()
+        else:
+            raise AttributeError("Timer for updating data is not configured.")
+
+    def update_lock_in_data(self):
+        """
+        Updates the data in real-time by reading from the DAQ module
+        and updating the plot.
+        """
+
+        try:
+            if not hasattr(self, "timestamp0"):
+                self.timestamp0 = None
+
+            # Read and update data
+            self.data_dev, self.timestamp0 = self.read_data_update_plot(self.data_dev, self.timestamp0)
+
+            # Restart the DAQ module if progress indicates completion
+            if self.daq_module.progress()[0] >= 1.0:
+                self.daq_module.finish()  # Finish the current iteration
+                self.daq_module.execute()  # Restart the module for continuous acquisition
+
+        except Exception as e:
+            print(f"Error updating plot: {e}")
+            if hasattr(self, "timer_lock_in"):
+                self.timer_lock_in.stop()
+            raise e
+
+    def stop_continuous_plotting(self):
+
+        if not self.daq_module or not self.device:
+            raise ValueError("DAQ module or device is not initialized.")
+        self.timer_lock_in.start()
+
+    def read_data_update_plot(self, data_dev, timestamp0, time_window=10):
+        """
+        Read and process the acquired data, updating the plot as necessary.
+
+        """
+
+        data_read = self.daq_module.read(flat=True)
+        returned_signal_paths = {signal_path.lower() for signal_path in data_read.keys()}
+
+        # Initializing the graph and data storage at the first launch
+        if not hasattr(self, "data_lines"):
+            self.data_lines = {}  # Graph line storage (x- and y-channels)
+            self.data_history = {}  # History of accumulated data (save arrays of time and values)
+
+        for signal_path in self.signal_paths:
+            signal_path_lower = signal_path.lower()
+
+            # Checking if there is data for the current path
+            if signal_path_lower not in returned_signal_paths:
+                continue
+
+            # Extracting data from the returned dictionary
+            signal_burst = data_read[signal_path_lower][0]
+
+            # Initializing timestamp0
+            if timestamp0 is None and "timestamp" in signal_burst:
+                timestamp0 = signal_burst["timestamp"][0, 0]
+
+            # Get the relative time and values
+            t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
+            values = signal_burst["value"][0, :]
+
+            # Check that the arrays t and values are valid
+            if len(values) < 2 or len(t) != len(values):
+                raise ValueError(f"Incorrect data for {signal_path_lower}: len t and values don't match.")
+
+            # Defining the graph name ('x' or 'y') depending on the path
+            if signal_path_lower.endswith(".x"):
+                graph_name = "x"
+                color = "r"
+            elif signal_path_lower.endswith(".y"):
+                graph_name = "y"
+                color = "b"
+            else:
+                continue
+
+            if not self.is_endless_mode_enabled:
+                if graph_name not in self.data_lines:
+                    self.data_lines[graph_name] = self.lock_in_plot.plot(
+                        [], [],
+                        pen=pg.mkPen(color=color, width=2),
+                        symbol='o',
+                        symbolSize=7,
+                        symbolBrush=pg.mkColor(color),
+                        name=graph_name
+                    )
+                    self.data_history[graph_name] = {"t": np.array([]), "values": np.array([])}
+
+                # Updating the history of accumulated data
+                history = self.data_history[graph_name]
+                history["t"] = np.append(history["t"], t)
+                history["values"] = np.append(history["values"], values)
+
+                # Truncating the data history to save only the last time_window seconds
+                max_time = history["t"][-1] if len(history["t"]) > 0 else 0
+                mask = history["t"] >= max_time - time_window
+                history["t"] = history["t"][mask]
+                history["values"] = history["values"][mask]
+
+                # Preparing the data for display (window: -time_window до 0)
+                t_display = history["t"] - max_time
+                values_display = history["values"]
+
+                self.data_lines[graph_name].setData(t_display, values_display)
+
+            else:
+
+                if graph_name not in self.data_lines:
+                    self.data_lines[graph_name] = self.lock_in_plot.plot(
+                        [], [],
+                        pen=pg.mkPen(color=color, width=2),
+                        symbol='o',
+                        symbolSize=7,
+                        symbolBrush=pg.mkColor(color),
+                        name=graph_name
+                    )
+
+                data_line_y = self.data_lines[graph_name]
+                t_data = np.append(data_line_y.xData, t)
+                y_data = np.append(data_line_y.yData, values)
+                data_line_y.setData(t_data, y_data)
+
+        if not hasattr(self, "legend"):
+            self.legend = self.lock_in_plot.addLegend()
+        else:
+            self.legend.clear()
+
+        for graph_name, line in self.data_lines.items():
+            self.legend.addItem(line, graph_name)
+
+        return data_dev, timestamp0
+
+    def clear_lock_in(self):
+
+        if hasattr(self, "data_history"):
+            self.data_history = {graph_name: {"t": np.array([]), "values": np.array([])}
+                                 for graph_name in self.data_lines.keys()}
+
+        if hasattr(self, "data_lines"):
+            for graph_name, line in self.data_lines.items():
+                line.setData([], [])
+
+    def toggle_x_graph(self, state):
+        data_items = self.lock_in_plot.listDataItems()
+        if data_items:
+            data_items[0].setVisible(state == Qt.Checked)
+
+    def toggle_y_graph(self, state):
+        data_items = self.lock_in_plot.listDataItems()
+        if len(data_items) > 1:
+            data_items[1].setVisible(state == Qt.Checked)
+
+    def toggle_endless(self, state):
+        if state == Qt.Checked:
+            self.is_endless_mode_enabled = True
+            self.lock_in_plot.enableAutoRange(axis='x', enable=True)
+        else:
+            self.is_endless_mode_enabled = False
+            self.lock_in_plot.setXRange(-10, 0, padding=0)
+
+    def _setup_plots(self):
+        # self.lock_in_plot.setTitle("title")
+        self.lock_in_plot.addLegend()
+        label_style = {'color': '#FFC300', 'font-size': '12px'}
+
+        self.lock_in_plot.setLabel('left', 'Voltage', **label_style)
+        self.lock_in_plot.setLabel('bottom', 'Time', **label_style)
+        self.lock_in_plot.showGrid(x=True, y=True, alpha=0.3)
+
+        self.hysteresis_plot.setLabel('left', 'Voltage', **label_style)
+        self.hysteresis_plot.setLabel('bottom', 'Current', **label_style)
+        self.hysteresis_plot.showGrid(x=True, y=True, alpha=0.3)
+
+        self.label = pg.LabelItem(justify='right')
+        self.graph_layout.addItem(self.label, row=0, col=0)
+        # self.lock_in_plot.avgPen = pg.mkPen('#FFFFFF')
+        # self.lock_in_plot.avgShadowPen = pg.mkPen('#8080DD', width=10)
+
+        self.v_line = pg.InfiniteLine(angle=90, movable=False)
+        self.h_line = pg.InfiniteLine(angle=0, movable=False)
+        self.lock_in_plot.addItem(self.v_line)
+        self.lock_in_plot.addItem(self.h_line)
+
+        self.lock_in_plot.scene().sigMouseMoved.connect(self.mouse_moved)
+        # self.lock_in_plot.sigRangeChanged.connect(self.handle_zoom)
+        # self.auto_scroll = True
+        # self.lock_in_plot.setDownsampling(auto=True, mode='peak')
+
+    def mouse_moved(self, evt):
+        pos = evt
+        if self.lock_in_plot.sceneBoundingRect().contains(pos):
+            mouse_point = self.lock_in_plot.vb.mapSceneToView(pos)
+            x = mouse_point.x()
+            y1 = mouse_point.y()
+            y2 = mouse_point.y()
+
+            self.label.setText(
+                f"<span style='font-size: 12pt; color: orange'>"
+                f"X: {x:.2f}, Y: {y1:.2f}, Y2: {y2:.2f}</span>"
+            )
+
+            self.v_line.setPos(x)
+            self.h_line.setPos(y1)
+            self.h_line.setPos(y2)
+
+    # def handle_zoom(self, window, view_range):
+    #     x_start, x_end = view_range[0]
+    #     self.auto_scroll = (x_end >= -0.1)
+
     @pyqtSlot()
     def on_mouse_clicked(self, event):
         pos = event.scenePos()
         x = pos.x()
         y = pos.y()
         self.status_text.setText("Coordinates of the point: x = {}, y = {}".format(x, y))
-
-    def read_data_update_plot(self, data_dev, timestamp0):
-        """
-        Read the acquired data out from the module and plot it. Raise an
-        AssertionError if no data is returned.
-        """
-        data_read = self.daq_module.read(True)
-        returned_signal_paths = [
-            signal_path.lower() for signal_path in data_read.keys()
-        ]
-        progress = self.daq_module.progress()[0]
-        # Loop over all the subscribed signals:
-        for signal_path in self.signal_paths:
-            if signal_path.lower() in returned_signal_paths:
-                # Loop over all the bursts for the subscribed signal. More than
-                # one burst may be returned at a time, in particular if we call
-                # read() less frequently than the burst_duration.
-                for index, signal_burst in enumerate(data_read[signal_path.lower()]):
-                    if np.any(np.isnan(timestamp0)):
-                        # Set our first timestamp to the first timestamp we obtain.
-                        timestamp0 = signal_burst["timestamp"][0, 0]
-                    # Convert from device ticks to time in seconds.
-                    t = (signal_burst["timestamp"][0, :] - timestamp0) / self.clockbase
-                    value = signal_burst["value"][0, :]
-                    if self.plot:
-                        self.data_line = self.lock_in_gw.plot(t, value)
-                    num_samples = len(signal_burst["value"][0, :])
-                    dt = (
-                                 signal_burst["timestamp"][0, -1]
-                                 - signal_burst["timestamp"][0, 0]
-                         ) / self.clockbase
-                    data_dev[signal_path].append(signal_burst)
-
-                    print(
-                        f"Read: {self.read_count}, progress: {100 * progress:.2f}%.",
-                        f"Burst {index}: {signal_path} contains {num_samples} spanning {dt:.2f} s.",
-                    )
-            else:
-                # Note: If we read before the next burst has finished, there may be no new data.
-                # No action required.
-                pass
-        #
-        # Update the plot.
-        if self.plot:
-            # self.timer.setInterval(50)
-            # self.timer.start()
-            self.lock_in_gw.setTitle(f"Progress of data acquisition: {100 * progress:.2f}%.")
-            # plt.pause(0.01)
-        return data_dev, timestamp0
-
