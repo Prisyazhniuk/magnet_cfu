@@ -113,7 +113,7 @@ class MagnetCFU(QMainWindow):
         #     # total_duration: Time in seconds: This examples stores all the acquired data in the `data`
         #     # dict - remove this continuous storing in read_data_update_plot before increasing the size
         #     # of total_duration!
-        total_duration = 1
+        total_duration = 2
         module_sampling_rate = 3000  # Number of points/second
         burst_duration = 0.2  # Time in seconds for each data burst/segment.
         num_cols = int(np.ceil(module_sampling_rate * burst_duration))
