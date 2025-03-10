@@ -157,7 +157,7 @@ class MagnetCFU(QMainWindow):
         # # # Specify continuous acquisition (type=0).
         # self.daq_module.set("type", 0)
         # # self.daq_module.set("endless", 1)
->>>>>>> 4020c5db9c89cec9eb751397274fc0b136c30499
+
         #
         # # 'grid/mode' - Specify the interpolation method of
         # #   the returned data samples.
